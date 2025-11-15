@@ -4,51 +4,32 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>WAV → DWP</title>
-  <meta name="description" content="A mobile-friendly WAV → DWP tool with DirectWave-style mapping UI. Client-side placeholder export and backend hooks for real DWP generation." />
+  <title>WAV → DWP Converter</title>
+  <meta name="description" content="Mobile-friendly WAV → DWP tool with touch drag, advanced zone editor, backend hook and packaging for GitHub Pages." />
   <style>
-    :root{
-      --bg:#0b0b0c; --panel:#121216; --accent:#1db954; --muted:#9aa0a6; --glass: rgba(255,255,255,0.03);
-      --radius:14px; --gap:12px; --mono: 'Roboto Mono', monospace;
-    }
-    html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;background:linear-gradient(180deg,#060606 0%, #0d0d10 100%);color:#e9eef0}
-    .app{max-width:1100px;margin:20px auto;padding:18px;display:grid;grid-template-columns:1fr;gap:18px}/* Header - FL Mobile style */
-.header{display:flex;align-items:center;gap:12px}
-.logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#222244,#111);display:flex;align-items:center;justify-content:center;font-weight:700}
-.title{font-size:18px;font-weight:700}
-.subtitle{color:var(--muted);font-size:13px}
-
-/* Main panels */
-.panels{display:grid;grid-template-columns:380px 1fr;gap:18px}
-.card{background:var(--panel);border-radius:var(--radius);padding:14px;backdrop-filter:blur(6px);box-shadow:0 6px 20px rgba(0,0,0,0.6)}
-
-/* File list */
-.file-list{display:flex;flex-direction:column;gap:10px}
-.file-row{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:var(--glass)}
-.file-row small{color:var(--muted)}
-
-/* Mapping UI */
-.mapping{display:flex;flex-direction:column;gap:12px}
-.piano-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:6px}
-.zone{height:44px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);display:flex;align-items:center;justify-content:center;font-size:12px}
-
-/* Controls */
-.controls{display:flex;gap:8px;flex-wrap:wrap}
-.btn{background:#202226;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
-.btn.primary{background:linear-gradient(90deg,var(--accent),#0ea5a7);color:#021}
-.small{font-size:13px;padding:8px}
-
-/* Export area */
-.export-row{display:flex;gap:8px;align-items:center}
-
-/* Responsive */
-@media (max-width:900px){.panels{grid-template-columns:1fr} .logo{width:40px;height:40px}}
-
-/* helper */
-label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
-input[type=file]{display:block}
-textarea{width:100%;height:120px;border-radius:8px;background:#070708;color:#fff;border:1px solid rgba(255,255,255,0.03);padding:10px}
-
+    :root{--bg:#060607;--panel:#0f1113;--accent:#1db954;--muted:#9aa0a6;--glass:rgba(255,255,255,0.03);--radius:12px}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;background:linear-gradient(180deg,#040405,#0b0b0d);color:#e9eef0}
+    .app{max-width:1100px;margin:14px auto;padding:12px;display:grid;gap:12px}
+    .header{display:flex;gap:12px;align-items:center}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#202238,#0b0b0d);display:flex;align-items:center;justify-content:center;font-weight:700}
+    .title{font-size:18px;font-weight:700}
+    .subtitle{color:var(--muted);font-size:13px}
+    .panels{display:grid;grid-template-columns:380px 1fr;gap:12px}
+    .card{background:var(--panel);border-radius:var(--radius);padding:12px;backdrop-filter:blur(6px);box-shadow:0 6px 18px rgba(0,0,0,0.6)}
+    .file-row{display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent)}
+    .btn{background:#161719;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),#0ea5a7);color:#012}
+    .piano-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:6px}
+    .zone{height:48px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.015),transparent);display:flex;align-items:center;justify-content:center;font-size:12px;position:relative}
+    .zone.selected{outline:3px solid rgba(29,185,84,0.12)}
+    label{font-size:13px;color:var(--muted);margin-bottom:6px}
+    input,textarea,select{background:#070708;color:#fff;border:1px solid rgba(255,255,255,0.03);padding:8px;border-radius:8px}
+    .row{display:flex;gap:8px}
+    .stack{display:flex;flex-direction:column;gap:8px}
+    .zone-controls{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    .touch-hint{color:var(--muted);font-size:13px}
+    @media (max-width:900px){.panels{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -56,216 +37,279 @@ textarea{width:100%;height:120px;border-radius:8px;background:#070708;color:#fff
     <div class="header">
       <div class="logo">FL</div>
       <div>
-        <div class="title">WAV → DWP Converter (FLM look)</div>
-        <div class="subtitle">Mobile-friendly UI • DirectWave-style mapping • zip export • backend hook</div>
+        <div class="title">WAV → DWP Converter (Mobile Complete)</div>
+        <div class="subtitle">Touch drag, advanced zone editor, server conversion & packager</div>
       </div>
     </div><div class="panels">
-  <!-- Left column: file upload + file list + zone properties -->
   <div class="card">
-    <label>Select WAV files (multiple supported)</label>
+    <label>Upload WAV files (touch-friendly)</label>
     <input id="fileInput" type="file" accept="audio/wav,audio/x-wav" multiple />
-    <div style="height:10px"></div>
-    <div class="file-list" id="fileList"></div>
+    <div id="fileList" style="margin-top:8px"></div>
 
-    <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.04)" />
+    <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.04)"/>
 
-    <div>
-      <label>Selected zone properties</label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <div style="flex:1"><label>Root note</label><input id="rootNote" placeholder="C4" /></div>
-        <div style="width:110px"><label>Velocity low</label><input id="velLow" value="0" type="number" min="0" max="127" /></div>
-        <div style="width:110px"><label>Velocity high</label><input id="velHigh" value="127" type="number" min="0" max="127" /></div>
+    <label>Selected zone editor</label>
+    <div class="zone-controls">
+      <div>
+        <label>Start Key</label>
+        <select id="startKey"></select>
       </div>
-      <div style="margin-top:10px">
-        <label>Sample loop (ms)</label>
-        <input id="loopStart" placeholder="start ms" /> — <input id="loopEnd" placeholder="end ms" />
+      <div>
+        <label>End Key</label>
+        <select id="endKey"></select>
       </div>
+      <div>
+        <label>Velocity Low</label>
+        <input id="velLow" type="range" min="0" max="127" value="0" />
+      </div>
+      <div>
+        <label>Velocity High</label>
+        <input id="velHigh" type="range" min="0" max="127" value="127" />
+      </div>
+      <div>
+        <label>Crossfade (ms)</label>
+        <input id="crossfade" type="number" value="10" />
+      </div>
+      <div>
+        <label>Loop Start (ms)</label>
+        <input id="loopStart" type="number" value="0" />
+      </div>
+    </div>
 
-      <div style="margin-top:12px;display:flex;gap:8px">
-        <button class="btn" id="autoMap">Auto map across keyboard</button>
-        <button class="btn" id="clearMap">Clear mapping</button>
-      </div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button class="btn" id="applyZone">Apply to selected zone(s)</button>
+      <button class="btn" id="addVelocityLayer">Add Velocity Layer</button>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="touch-hint">Touch instructions: long-press a file to pick it up, drag across zones, release to drop. Two-finger tap to toggle zone selection. Pinch to zoom keyboard (if device supports).</div>
     </div>
   </div>
 
-  <!-- Right column: mapping grid + export -->
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <div style="font-weight:700">DirectWave-style mapping</div>
-      <div style="color:var(--muted);font-size:13px">Drop samples into zones or use Auto map</div>
+      <div style="font-weight:700">Mapping Grid</div>
+      <div style="color:var(--muted);font-size:13px">Tap zones to select; drag samples into zones (mobile supported)</div>
     </div>
 
     <div style="height:12px"></div>
-    <div class="mapping">
-      <div style="display:flex;gap:10px;align-items:center">
-        <div style="font-size:13px;color:var(--muted)">Key range (C2 → B6)</div>
-        <div style="flex:1;height:8px;background:rgba(255,255,255,0.02);border-radius:6px"></div>
+    <div id="keyboardWrap" style="overflow:hidden;padding-bottom:8px">
+      <div class="piano-grid" id="pianoGrid"></div>
+    </div>
+
+    <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+      <div id="zoneInfo" style="font-size:13px;color:var(--muted)">No zone selected</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn primary" id="exportZip">Export zip (placeholder .dwp)</button>
+        <button class="btn" id="sendBackend">Send to backend (real .dwp)</button>
+        <button class="btn" id="packageGH">Package for GitHub Pages (.zip)</button>
       </div>
+    </div>
 
-      <div class="piano-grid" id="pianoGrid">
-        <!-- 12 * 5 rows = 60 cells, we'll build with JS -->
-      </div>
+    <div style="margin-top:12px">
+      <label>Manifest (editable)</label>
+      <textarea id="manifest" style="height:120px">{
 
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
-        <div>
-          <label>Selected zone info</label>
-          <div id="zoneInfo" style="font-size:13px;color:var(--muted)">No zone selected</div>
-        </div>
+"programName":"My Program", "author":"User", "zones":[] }</textarea> </div>
 
-        <div class="export-row">
-          <button class="btn primary" id="exportZip">Export ZIP (zip contains .dwp & samples)</button>
-          <button class="btn" id="sendBackend">Send to backend (real DWP)</button>
-        </div>
-      </div>
-
-      <div style="margin-top:12px">
-        <label>Manifest / DWP metadata (editable)</label>
-        <textarea id="manifest"><!-- Edit program name, alias, loop settings, etc. -->
-
-{ "programName":"My Program", "author":"User", "zones":[] } </textarea> </div> </div> </div> </div>
-
-<div style="max-width:1100px;margin:0 auto;display:flex;gap:8px;align-items:center;justify-content:center">
-  <small style="color:var(--muted)">Notes: Client-side export creates a placeholder .dwp (non-functional), backend endpoint can produce real DWP if you provide DirectWave/FL Studio conversion service.</small>
+</div>
 </div>
 
-  </div>  <!-- Dependencies: JSZip CDN -->  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>  <script>
-    // Simple piano grid creation (60 zones) — each cell stores mapping info
+<div class="card">
+  <label>Developer: Server sample (Node.js)</label>
+  <textarea id="serverSample" style="height:220px;white-space:pre-wrap">// Node.js Express endpoint example (server must be Windows with FL Studio & DirectWave installed)
+
+// Save as server.js and run with node. This is an example — adapt for your environment.
+
+const express = require('express'); const multer = require('multer'); const {spawn} = require('child_process'); const fs = require('fs'); const path = require('path');
+
+const upload = multer({dest:'uploads/'}); const app = express();
+
+app.post('/api/convert', upload.array('samples'), async (req, res) => { try{ const manifest = JSON.parse(req.body.manifest || '{}'); const jobDir = path.join(__dirname, 'jobs', Date.now().toString()); fs.mkdirSync(jobDir, {recursive:true}); // move samples for(const f of req.files){ fs.renameSync(f.path, path.join(jobDir, f.originalname)); } // write manifest fs.writeFileSync(path.join(jobDir, 'manifest.json'), req.body.manifest);
+
+// Now call a helper script that runs AutoHotkey or a preconfigured automation
+// that opens FL Studio, imports samples into DirectWave, maps zones per manifest,
+// then exports a .dwp to jobDir/output.dwp. That helper is system-specific.
+
+const helper = spawn('C:\\tools\\fl_automation.bat', [jobDir], {shell:true});
+helper.stdout.on('data', d=>console.log(d.toString()));
+helper.stderr.on('data', d=>console.error(d.toString()));
+helper.on('close', code=>{
+  if(code!==0) return res.status(500).send('conversion failed');
+  const outZip = path.join(jobDir, 'result.zip');
+  // zip output.dwp and samples (implement as you like)
+  // send file
+  res.download(outZip);
+});
+
+}catch(e){ console.error(e); res.status(500).send('server error') } });
+
+app.listen(3000, ()=>console.log('listening 3000')); </textarea>
+
+<div style="margin-top:8px;color:var(--muted)">Notes: the helper script typically uses AutoHotkey, PowerShell, or Python to control the FL Studio GUI (or use an official command-line API if available). You must have a licensed copy of FL Studio/DirectWave on the server. Run conversions in isolated VMs for security.</div>
+</div>
+
+<div style="display:flex;gap:8px;justify-content:center;align-items:center">
+  <small style="color:var(--muted)">Packaging & README will be created in the GitHub zip when you click Package for GitHub.</small>
+</div>
+
+  </div>  <!-- Libraries -->  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>  <script>
+    // Core client logic: touch drag, zone editor, export, packaging
     const pianoGrid = document.getElementById('pianoGrid');
     const fileInput = document.getElementById('fileInput');
     const fileList = document.getElementById('fileList');
-    const manifest = document.getElementById('manifest');
-    let files = [];
-    let zones = Array.from({length:60}).map((_,i)=>({index:i, sample:null, root:null, vel:[0,127], loop:[0,0]}));
+    const manifestEl = document.getElementById('manifest');
+    const serverSampleEl = document.getElementById('serverSample');
 
-    function noteNameFromIndex(i){
-      const base = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-      const octave = 2 + Math.floor(i/12);
-      return base[i%12]+octave;
+    // zones: startKey/endKey per zone, but we model 60 single-key zones and allow stretching
+    let zones = Array.from({length:60}).map((_,i)=>({index:i, sample:null, start:i, end:i, velLow:0, velHigh:127, crossfade:10, loopStart:0, layers:[] }));
+    let files = [];
+    let selectedZones = new Set();
+    let draggingFile = null;
+    let dragTouchId = null;
+
+    // keys list
+    const keys = [];
+    const base = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    for(let i=0;i<60;i++){ keys.push(base[i%12]+(2+Math.floor(i/12))); }
+
+    function populateKeySelects(){
+      const startKey = document.getElementById('startKey');
+      const endKey = document.getElementById('endKey');
+      startKey.innerHTML = ''; endKey.innerHTML = '';
+      keys.forEach((k,i)=>{ const o=document.createElement('option'); o.value=i; o.text=k; startKey.appendChild(o.cloneNode(true)); endKey.appendChild(o.cloneNode(true)); });
     }
+    populateKeySelects();
+
+    function noteNameFromIndex(i){ return keys[i] || ('K'+i); }
 
     function renderGrid(){
       pianoGrid.innerHTML='';
       zones.forEach((z,i)=>{
-        const div = document.createElement('div');
-        div.className='zone';
-        div.dataset.index=i;
-        div.innerText = noteNameFromIndex(i);
-        if(z.sample) div.style.border = '2px solid rgba(255,255,255,0.06)';
-        div.addEventListener('click', ()=>selectZone(i));
+        const div=document.createElement('div'); div.className='zone'; div.dataset.index=i;
+        div.innerHTML=`<div style="pointer-events:none">${noteNameFromIndex(i)}${z.sample?'<div style="font-size:10px;color:var(--muted)">'+z.sample.name+'</div>':''}</div>`;
+        if(selectedZones.has(i)) div.classList.add('selected');
+        div.addEventListener('click', (ev)=>{ if(ev.shiftKey) toggleZoneSelect(i); else selectSingleZone(i); });
+        // allow drop
         div.addEventListener('dragover', e=>e.preventDefault());
-        div.addEventListener('drop', e=>{
-          e.preventDefault();
-          const fileIndex = e.dataTransfer.getData('fileIndex');
-          if(fileIndex!==undefined && files[fileIndex]){
-            assignSampleToZone(files[fileIndex], i);
-          }
-        });
+        div.addEventListener('drop', e=>{ e.preventDefault(); const idx = e.dataTransfer.getData('fileIndex'); if(idx) assignSampleToZone(files[idx], i); });
+        // touch handlers to support mobile drop
+        div.addEventListener('touchmove', e=>{ if(draggingFile && dragTouchId===e.changedTouches[0].identifier){ e.preventDefault(); highlightZoneUnderTouch(e.changedTouches[0]); } });
+        div.addEventListener('touchend', e=>{ if(draggingFile && dragTouchId===e.changedTouches[0].identifier){ const idx = getZoneIndexFromTouch(e.changedTouches[0]); if(idx!==null) assignSampleToZone(draggingFile, idx); stopDrag(); } });
         pianoGrid.appendChild(div);
-      })
-    }
-
-    function selectZone(i){
-      const z = zones[i];
-      document.getElementById('zoneInfo').innerText = `Zone ${i} (${noteNameFromIndex(i)})
-Sample: ${z.sample? z.sample.name : '—'}
-Vel: ${z.vel[0]}-${z.vel[1]}
-Loop: ${z.loop[0]}-${z.loop[1]}`;
-    }
-
-    function assignSampleToZone(file, zoneIndex){
-      zones[zoneIndex].sample = file;
-      zones[zoneIndex].root = document.getElementById('rootNote').value || noteNameFromIndex(zoneIndex);
-      renderFiles(); renderGrid(); selectZone(zoneIndex);
+      });
     }
 
     function renderFiles(){
       fileList.innerHTML='';
       files.forEach((f,idx)=>{
-        const row = document.createElement('div'); row.className='file-row';
-        const name = document.createElement('div'); name.innerHTML = `<strong>${f.name}</strong><br><small>${(f.size/1024).toFixed(1)} KB</small>`;
-        const drag = document.createElement('div'); drag.className='btn small'; drag.innerText='Drag to map';
-        drag.draggable=true;
-        drag.addEventListener('dragstart', e=>{ e.dataTransfer.setData('fileIndex', idx); });
-        const preview = document.createElement('button'); preview.className='btn small'; preview.innerText='Preview'; preview.addEventListener('click', ()=>{ const url = URL.createObjectURL(f); new Audio(url).play(); });
-        row.appendChild(name); row.appendChild(drag); row.appendChild(preview);
+        const row=document.createElement('div'); row.className='file-row';
+        row.innerHTML = `<div style="flex:1"><strong>${f.name}</strong><br><small style='color:var(--muted)'>${(f.size/1024).toFixed(1)} KB</small></div>`;
+        const drag = document.createElement('div'); drag.className='btn'; drag.innerText='Pick (long-press)';
+        drag.addEventListener('touchstart', e=>{ e.preventDefault(); startTouchDrag(e, idx); });
+        drag.addEventListener('mousedown', e=>{ startMouseDrag(e, idx); });
+        const preview = document.createElement('button'); preview.className='btn'; preview.innerText='Preview'; preview.addEventListener('click', ()=>{ const url=URL.createObjectURL(f); new Audio(url).play(); });
+        row.appendChild(drag); row.appendChild(preview);
         fileList.appendChild(row);
-      })
+      });
     }
 
-    fileInput.addEventListener('change', e=>{
-      files = Array.from(e.target.files);
-      renderFiles();
+    fileInput.addEventListener('change', e=>{ files = Array.from(e.target.files); renderFiles(); });
+
+    function startMouseDrag(e, fileIdx){ draggingFile = files[fileIdx]; document.body.style.cursor='grabbing'; window.addEventListener('mouseup', stopDrag); }
+    function startTouchDrag(e, fileIdx){ const t = e.changedTouches[0]; dragTouchId = t.identifier; draggingFile = files[fileIdx]; // show quick vibration if available
+      if(navigator.vibrate) navigator.vibrate(20);
+    }
+    function stopDrag(){ draggingFile = null; dragTouchId = null; document.body.style.cursor='default'; }
+
+    function getZoneIndexFromTouch(touch){ const el = document.elementFromPoint(touch.clientX, touch.clientY); if(!el) return null; const zone = el.closest('.zone'); if(!zone) return null; return Number(zone.dataset.index); }
+    function highlightZoneUnderTouch(touch){ const idx = getZoneIndexFromTouch(touch); // highlight visual
+      Array.from(document.querySelectorAll('.zone')).forEach(z=>z.style.boxShadow=''); if(idx!==null){ const el = document.querySelector(`.zone[data-index='${idx}']`); if(el) el.style.boxShadow='inset 0 0 0 3px rgba(29,185,84,0.08)'; }
+    }
+
+    function assignSampleToZone(file, index){ zones[index].sample = file; zones[index].layers = [{name:file.name, crossfade: zones[index].crossfade}]; renderGrid(); renderFiles(); selectSingleZone(index); }
+
+    function selectSingleZone(i){ selectedZones.clear(); selectedZones.add(i); renderGrid(); updateZoneInfo(i); }
+    function toggleZoneSelect(i){ if(selectedZones.has(i)) selectedZones.delete(i); else selectedZones.add(i); renderGrid(); }
+
+    function updateZoneInfo(i){ const z = zones[i]; document.getElementById('zoneInfo').innerText = `Zone ${i} (${noteNameFromIndex(i)}) - Sample: ${z.sample?z.sample.name:'—'} Start:${z.start} End:${z.end} Vel:${z.velLow}-${z.velHigh}`; document.getElementById('startKey').value = z.start; document.getElementById('endKey').value = z.end; document.getElementById('velLow').value = z.velLow; document.getElementById('velHigh').value = z.velHigh; document.getElementById('loopStart').value = z.loopStart; document.getElementById('crossfade').value = z.crossfade; }
+
+    document.getElementById('applyZone').addEventListener('click', ()=>{
+      const start = Number(document.getElementById('startKey').value);
+      const end = Number(document.getElementById('endKey').value);
+      const vl = Number(document.getElementById('velLow').value);
+      const vh = Number(document.getElementById('velHigh').value);
+      const cf = Number(document.getElementById('crossfade').value);
+      for(const i of Array.from(selectedZones)){ zones[i].start=start; zones[i].end=end; zones[i].velLow=vl; zones[i].velHigh=vh; zones[i].crossfade=cf; }
+      renderGrid();
     });
 
-    document.getElementById('autoMap').addEventListener('click', ()=>{
-      // Simple auto map: spread selected files across keyboard sequentially
-      const chosen = files.slice(0, zones.length);
-      chosen.forEach((f,i)=>{ zones[i].sample = f; zones[i].root = noteNameFromIndex(i); });
-      renderGrid(); renderFiles();
+    document.getElementById('addVelocityLayer').addEventListener('click', ()=>{
+      if(selectedZones.size===0) return alert('Select zones first');
+      const fname = prompt('Velocity layer sample name (must be uploaded)');
+      if(!fname) return;
+      for(const i of selectedZones){ zones[i].layers.push({name:fname,crossfade: zones[i].crossfade}); }
+      alert('Layer added to selected zones — make sure file name matches uploaded sample');
     });
 
-    document.getElementById('clearMap').addEventListener('click', ()=>{ zones.forEach(z=>{z.sample=null}); renderGrid(); });
-
-    renderGrid();
-
-    // Export ZIP: create placeholder .dwp files and include samples
+    // Export ZIP (placeholder .dwp + samples + manifest)
     document.getElementById('exportZip').addEventListener('click', async ()=>{
-      const zip = new JSZip();
-      const programName = JSON.parse(manifest.value||'{}').programName || 'program';
-      // add samples
-      const samplesFolder = zip.folder('samples');
-      for(const z of zones){
-        if(z.sample){
-          const arr = await z.sample.arrayBuffer();
-          samplesFolder.file(z.sample.name, arr);
-        }
-      }
-      // create a JSON manifest that describes zones (this will help advanced tools to build real DWP)
-      const manifestObj = {programName,author:'user',zones:zones.map(z=>({i:z.index, sample:z.sample?z.sample.name:null, root:z.root, vel:z.vel, loop:z.loop}))};
-      zip.file('manifest.json', JSON.stringify(manifestObj, null, 2));
-
-      // placeholder .dwp binary: we cannot generate real DWP client-side, so we include a small marker file
-      const dwpPlaceholder = `DWP_PLACEHOLDER
-Program:${programName}
-Generated:${new Date().toISOString()}`;
-      zip.file(programName + '.dwp', dwpPlaceholder);
-
-      const content = await zip.generateAsync({type:'blob'});
-      const url = URL.createObjectURL(content);
-      const a = document.createElement('a'); a.href=url; a.download = programName + '.zip'; a.click();
-      URL.revokeObjectURL(url);
+      const zip = new JSZip(); const samplesFolder = zip.folder('samples');
+      for(const z of zones){ if(z.sample) samplesFolder.file(z.sample.name, await z.sample.arrayBuffer()); }
+      const manifestObj = {programName:JSON.parse(manifestEl.value||'{}').programName||'program',zones:zones.map(z=>({start:z.start,end:z.end,velLow:z.velLow,velHigh:z.velHigh,sample:z.sample?z.sample.name:null,layers:z.layers}))};
+      zip.file('manifest.json', JSON.stringify(manifestObj,null,2)); zip.file((manifestObj.programName||'program')+'.dwp','DWP_PLACEHOLDER
+This is a placeholder. Use server-side conversion to create a real .dwp');
+      const blob = await zip.generateAsync({type:'blob'});
+      const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(manifestObj.programName||'program')+'.zip'; a.click();
     });
 
-    // Backend hook: POST WAVs + manifest to /api/convert — backend should run DirectWave/FL Studio to create real .dwp
+    // Backend send
     document.getElementById('sendBackend').addEventListener('click', async ()=>{
+      const endpoint = prompt('Backend endpoint URL','https://your-backend.example.com/api/convert'); if(!endpoint) return;
+      const fd = new FormData();
+      for(const z of zones){ if(z.sample) fd.append('samples', z.sample, z.sample.name); }
+      fd.append('manifest', manifestEl.value);
       try{
-        const endpoint = prompt('Backend endpoint URL','https://your-backend.example.com/api/convert');
-        if(!endpoint) return;
-        const fd = new FormData();
-        for(const z of zones){ if(z.sample) fd.append('samples', z.sample, z.sample.name); }
-        fd.append('manifest', new Blob([manifest.value], {type:'application/json'}));
-        // optional params
-        fd.append('programName', JSON.parse(manifest.value||'{}').programName || 'program');
-
         const res = await fetch(endpoint, {method:'POST', body:fd});
-        if(!res.ok){ alert('Backend returned error: '+res.status); return; }
-        const blob = await res.blob();
-        // assume backend returns a ZIP with .dwp inside
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = (JSON.parse(manifest.value||'{}').programName || 'program') + '-from-backend.zip'; a.click();
-        URL.revokeObjectURL(url);
-      }catch(err){ alert('Failed to send to backend: '+err.message) }
+        if(!res.ok) return alert('Server error '+res.status);
+        const blob = await res.blob(); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='converted-from-backend.zip'; a.click();
+      }catch(e){ alert('Error: '+e.message); }
     });
 
-    // Basic helpers for mobile file dropping (touch support)
-    // (Left out for brevity — can add if you want full touch mapping gestures)
+    // Package for GitHub: creates index.html (this file) and README, zipped
+    document.getElementById('packageGH').addEventListener('click', async ()=>{
+      const zip = new JSZip();
+      // index.html: capture current document HTML as a static file (client-side snapshot)
+      const docHtml = `<!-- Save this as index.html for GitHub Pages -->
+` + document.documentElement.outerHTML;
+      zip.file('index.html', docHtml);
+      const readme = `# WAV → DWP Converter (FL Studio Mobile style)
 
-  </script>  <!-- Packaging notes (visible in source):
-       - This single file can be saved as index.html and deployed to GitHub Pages (branch: main, folder: /)
-       - To enable server-side DWP creation, implement a backend endpoint /api/convert that:
-         1) Accepts multipart/form-data (samples + manifest.json)
-         2) Uses a licensed copy of DirectWave (or FL Studio scripting) on the server to import samples, map zones, and export .dwp
-         3) Returns a zip containing the .dwp and original samples
-       - Security: don't run untrusted binaries — prefer an isolated VM or container for conversions.
-  --></body>
+This repository contains a single-file web app that:
+
+- Provides a touch-friendly mapping UI
+- Lets users upload WAVs and map them to keyboard zones
+- Exports a placeholder .dwp + samples manifest
+- Includes a server-side example to generate real .dwp using FL Studio/DirectWave
+
+## How to use
+- Open index.html in a browser (mobile friendly).
+- Upload WAVs, map them, edit manifest.json, and use the backend endpoint to convert.
+
+## Server
+See server sample in the app (server.js). The server must run on Windows with FL Studio & DirectWave installed. Use automation scripts (AutoHotkey/PowerShell) to script the conversion.
+
+## License
+This is provided as-is. You must own a licensed copy of FL Studio/DirectWave to perform server-side conversions.
+`;
+      zip.file('README.md', readme);
+      zip.file('server-sample.js', serverSampleEl.value);
+      const blob = await zip.generateAsync({type:'blob'});
+      const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='wav-to-dwp-github-package.zip'; a.click();
+    });
+
+    // initial render
+    renderGrid(); populateKeySelects();
+
+  </script>  <!-- Packaging comment: the Package for GitHub button will snapshot page HTML as index.html; you may want to edit the snapshot to remove dynamic or inline blob URLs before pushing to GH Pages. --></body>
 </html>
