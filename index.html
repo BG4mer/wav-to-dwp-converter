@@ -1,81 +1,271 @@
-<!DOCTYPE html><html lang="en">
+<!doctype html>
+
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WAV → DWP Converter</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WAV → DWP</title>
+  <meta name="description" content="A mobile-friendly WAV → DWP tool with DirectWave-style mapping UI. Client-side placeholder export and backend hooks for real DWP generation." />
   <style>
-    body {
-      background: #0e0e0e;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
+    :root{
+      --bg:#0b0b0c; --panel:#121216; --accent:#1db954; --muted:#9aa0a6; --glass: rgba(255,255,255,0.03);
+      --radius:14px; --gap:12px; --mono: 'Roboto Mono', monospace;
     }
-    .box {
-      background: #1a1a1a;
-      padding: 25px;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 400px;
-      text-align: center;
-      box-shadow: 0 0 20px #000;
-    }
-    input[type="file"] {
-      margin: 15px 0;
-    }
-    button {
-      background: #0078ff;
-      border: none;
-      padding: 12px 22px;
-      border-radius: 8px;
-      color: #fff;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    button:active {
-      opacity: 0.7;
-    }
-    #status {
-      margin-top: 15px;
-      font-size: 14px;
-      color: #ccc;
-    }
+    html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;background:linear-gradient(180deg,#060606 0%, #0d0d10 100%);color:#e9eef0}
+    .app{max-width:1100px;margin:20px auto;padding:18px;display:grid;grid-template-columns:1fr;gap:18px}/* Header - FL Mobile style */
+.header{display:flex;align-items:center;gap:12px}
+.logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#222244,#111);display:flex;align-items:center;justify-content:center;font-weight:700}
+.title{font-size:18px;font-weight:700}
+.subtitle{color:var(--muted);font-size:13px}
+
+/* Main panels */
+.panels{display:grid;grid-template-columns:380px 1fr;gap:18px}
+.card{background:var(--panel);border-radius:var(--radius);padding:14px;backdrop-filter:blur(6px);box-shadow:0 6px 20px rgba(0,0,0,0.6)}
+
+/* File list */
+.file-list{display:flex;flex-direction:column;gap:10px}
+.file-row{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:var(--glass)}
+.file-row small{color:var(--muted)}
+
+/* Mapping UI */
+.mapping{display:flex;flex-direction:column;gap:12px}
+.piano-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:6px}
+.zone{height:44px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);display:flex;align-items:center;justify-content:center;font-size:12px}
+
+/* Controls */
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+.btn{background:#202226;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+.btn.primary{background:linear-gradient(90deg,var(--accent),#0ea5a7);color:#021}
+.small{font-size:13px;padding:8px}
+
+/* Export area */
+.export-row{display:flex;gap:8px;align-items:center}
+
+/* Responsive */
+@media (max-width:900px){.panels{grid-template-columns:1fr} .logo{width:40px;height:40px}}
+
+/* helper */
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+input[type=file]{display:block}
+textarea{width:100%;height:120px;border-radius:8px;background:#070708;color:#fff;border:1px solid rgba(255,255,255,0.03);padding:10px}
+
   </style>
 </head>
 <body>
-  <div class="box">
-    <h2>WAV → DWP Converter</h2>
-    <p>Upload a .wav file to generate a .dwp placeholder.</p><input type="file" id="wavFile" accept="audio/wav" />
-<button onclick="convert()">Convert</button>
-<div id="status"></div>
+  <div class="app">
+    <div class="header">
+      <div class="logo">FL</div>
+      <div>
+        <div class="title">WAV → DWP Converter (FLM look)</div>
+        <div class="subtitle">Mobile-friendly UI • DirectWave-style mapping • zip export • backend hook</div>
+      </div>
+    </div><div class="panels">
+  <!-- Left column: file upload + file list + zone properties -->
+  <div class="card">
+    <label>Select WAV files (multiple supported)</label>
+    <input id="fileInput" type="file" accept="audio/wav,audio/x-wav" multiple />
+    <div style="height:10px"></div>
+    <div class="file-list" id="fileList"></div>
 
-  </div>  <script>
-    function convert() {
-      const file = document.getElementById('wavFile').files[0];
-      if (!file) {
-        document.getElementById('status').innerText = 'Upload a WAV file first.';
-        return;
-      }
+    <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.04)" />
 
-      const reader = new FileReader();
-      reader.onload = function () {
-        const dwpContent = `DWP_PLACEHOLDER\nOriginal WAV: ${file.name}\nGenerated: ${new Date().toISOString()}`;
-        const blob = new Blob([dwpContent], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
+    <div>
+      <label>Selected zone properties</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div style="flex:1"><label>Root note</label><input id="rootNote" placeholder="C4" /></div>
+        <div style="width:110px"><label>Velocity low</label><input id="velLow" value="0" type="number" min="0" max="127" /></div>
+        <div style="width:110px"><label>Velocity high</label><input id="velHigh" value="127" type="number" min="0" max="127" /></div>
+      </div>
+      <div style="margin-top:10px">
+        <label>Sample loop (ms)</label>
+        <input id="loopStart" placeholder="start ms" /> — <input id="loopEnd" placeholder="end ms" />
+      </div>
 
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = file.name.replace('.wav', '') + '.dwp';
-        a.click();
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn" id="autoMap">Auto map across keyboard</button>
+        <button class="btn" id="clearMap">Clear mapping</button>
+      </div>
+    </div>
+  </div>
 
-        document.getElementById('status').innerText = 'DWP file generated (placeholder).';
-      };
+  <!-- Right column: mapping grid + export -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700">DirectWave-style mapping</div>
+      <div style="color:var(--muted);font-size:13px">Drop samples into zones or use Auto map</div>
+    </div>
 
-      reader.readAsArrayBuffer(file);
+    <div style="height:12px"></div>
+    <div class="mapping">
+      <div style="display:flex;gap:10px;align-items:center">
+        <div style="font-size:13px;color:var(--muted)">Key range (C2 → B6)</div>
+        <div style="flex:1;height:8px;background:rgba(255,255,255,0.02);border-radius:6px"></div>
+      </div>
+
+      <div class="piano-grid" id="pianoGrid">
+        <!-- 12 * 5 rows = 60 cells, we'll build with JS -->
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+        <div>
+          <label>Selected zone info</label>
+          <div id="zoneInfo" style="font-size:13px;color:var(--muted)">No zone selected</div>
+        </div>
+
+        <div class="export-row">
+          <button class="btn primary" id="exportZip">Export ZIP (zip contains .dwp & samples)</button>
+          <button class="btn" id="sendBackend">Send to backend (real DWP)</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <label>Manifest / DWP metadata (editable)</label>
+        <textarea id="manifest"><!-- Edit program name, alias, loop settings, etc. -->
+
+{ "programName":"My Program", "author":"User", "zones":[] } </textarea> </div> </div> </div> </div>
+
+<div style="max-width:1100px;margin:0 auto;display:flex;gap:8px;align-items:center;justify-content:center">
+  <small style="color:var(--muted)">Notes: Client-side export creates a placeholder .dwp (non-functional), backend endpoint can produce real DWP if you provide DirectWave/FL Studio conversion service.</small>
+</div>
+
+  </div>  <!-- Dependencies: JSZip CDN -->  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>  <script>
+    // Simple piano grid creation (60 zones) — each cell stores mapping info
+    const pianoGrid = document.getElementById('pianoGrid');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+    const manifest = document.getElementById('manifest');
+    let files = [];
+    let zones = Array.from({length:60}).map((_,i)=>({index:i, sample:null, root:null, vel:[0,127], loop:[0,0]}));
+
+    function noteNameFromIndex(i){
+      const base = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+      const octave = 2 + Math.floor(i/12);
+      return base[i%12]+octave;
     }
-  </script></body>
+
+    function renderGrid(){
+      pianoGrid.innerHTML='';
+      zones.forEach((z,i)=>{
+        const div = document.createElement('div');
+        div.className='zone';
+        div.dataset.index=i;
+        div.innerText = noteNameFromIndex(i);
+        if(z.sample) div.style.border = '2px solid rgba(255,255,255,0.06)';
+        div.addEventListener('click', ()=>selectZone(i));
+        div.addEventListener('dragover', e=>e.preventDefault());
+        div.addEventListener('drop', e=>{
+          e.preventDefault();
+          const fileIndex = e.dataTransfer.getData('fileIndex');
+          if(fileIndex!==undefined && files[fileIndex]){
+            assignSampleToZone(files[fileIndex], i);
+          }
+        });
+        pianoGrid.appendChild(div);
+      })
+    }
+
+    function selectZone(i){
+      const z = zones[i];
+      document.getElementById('zoneInfo').innerText = `Zone ${i} (${noteNameFromIndex(i)})
+Sample: ${z.sample? z.sample.name : '—'}
+Vel: ${z.vel[0]}-${z.vel[1]}
+Loop: ${z.loop[0]}-${z.loop[1]}`;
+    }
+
+    function assignSampleToZone(file, zoneIndex){
+      zones[zoneIndex].sample = file;
+      zones[zoneIndex].root = document.getElementById('rootNote').value || noteNameFromIndex(zoneIndex);
+      renderFiles(); renderGrid(); selectZone(zoneIndex);
+    }
+
+    function renderFiles(){
+      fileList.innerHTML='';
+      files.forEach((f,idx)=>{
+        const row = document.createElement('div'); row.className='file-row';
+        const name = document.createElement('div'); name.innerHTML = `<strong>${f.name}</strong><br><small>${(f.size/1024).toFixed(1)} KB</small>`;
+        const drag = document.createElement('div'); drag.className='btn small'; drag.innerText='Drag to map';
+        drag.draggable=true;
+        drag.addEventListener('dragstart', e=>{ e.dataTransfer.setData('fileIndex', idx); });
+        const preview = document.createElement('button'); preview.className='btn small'; preview.innerText='Preview'; preview.addEventListener('click', ()=>{ const url = URL.createObjectURL(f); new Audio(url).play(); });
+        row.appendChild(name); row.appendChild(drag); row.appendChild(preview);
+        fileList.appendChild(row);
+      })
+    }
+
+    fileInput.addEventListener('change', e=>{
+      files = Array.from(e.target.files);
+      renderFiles();
+    });
+
+    document.getElementById('autoMap').addEventListener('click', ()=>{
+      // Simple auto map: spread selected files across keyboard sequentially
+      const chosen = files.slice(0, zones.length);
+      chosen.forEach((f,i)=>{ zones[i].sample = f; zones[i].root = noteNameFromIndex(i); });
+      renderGrid(); renderFiles();
+    });
+
+    document.getElementById('clearMap').addEventListener('click', ()=>{ zones.forEach(z=>{z.sample=null}); renderGrid(); });
+
+    renderGrid();
+
+    // Export ZIP: create placeholder .dwp files and include samples
+    document.getElementById('exportZip').addEventListener('click', async ()=>{
+      const zip = new JSZip();
+      const programName = JSON.parse(manifest.value||'{}').programName || 'program';
+      // add samples
+      const samplesFolder = zip.folder('samples');
+      for(const z of zones){
+        if(z.sample){
+          const arr = await z.sample.arrayBuffer();
+          samplesFolder.file(z.sample.name, arr);
+        }
+      }
+      // create a JSON manifest that describes zones (this will help advanced tools to build real DWP)
+      const manifestObj = {programName,author:'user',zones:zones.map(z=>({i:z.index, sample:z.sample?z.sample.name:null, root:z.root, vel:z.vel, loop:z.loop}))};
+      zip.file('manifest.json', JSON.stringify(manifestObj, null, 2));
+
+      // placeholder .dwp binary: we cannot generate real DWP client-side, so we include a small marker file
+      const dwpPlaceholder = `DWP_PLACEHOLDER
+Program:${programName}
+Generated:${new Date().toISOString()}`;
+      zip.file(programName + '.dwp', dwpPlaceholder);
+
+      const content = await zip.generateAsync({type:'blob'});
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a'); a.href=url; a.download = programName + '.zip'; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Backend hook: POST WAVs + manifest to /api/convert — backend should run DirectWave/FL Studio to create real .dwp
+    document.getElementById('sendBackend').addEventListener('click', async ()=>{
+      try{
+        const endpoint = prompt('Backend endpoint URL','https://your-backend.example.com/api/convert');
+        if(!endpoint) return;
+        const fd = new FormData();
+        for(const z of zones){ if(z.sample) fd.append('samples', z.sample, z.sample.name); }
+        fd.append('manifest', new Blob([manifest.value], {type:'application/json'}));
+        // optional params
+        fd.append('programName', JSON.parse(manifest.value||'{}').programName || 'program');
+
+        const res = await fetch(endpoint, {method:'POST', body:fd});
+        if(!res.ok){ alert('Backend returned error: '+res.status); return; }
+        const blob = await res.blob();
+        // assume backend returns a ZIP with .dwp inside
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = (JSON.parse(manifest.value||'{}').programName || 'program') + '-from-backend.zip'; a.click();
+        URL.revokeObjectURL(url);
+      }catch(err){ alert('Failed to send to backend: '+err.message) }
+    });
+
+    // Basic helpers for mobile file dropping (touch support)
+    // (Left out for brevity — can add if you want full touch mapping gestures)
+
+  </script>  <!-- Packaging notes (visible in source):
+       - This single file can be saved as index.html and deployed to GitHub Pages (branch: main, folder: /)
+       - To enable server-side DWP creation, implement a backend endpoint /api/convert that:
+         1) Accepts multipart/form-data (samples + manifest.json)
+         2) Uses a licensed copy of DirectWave (or FL Studio scripting) on the server to import samples, map zones, and export .dwp
+         3) Returns a zip containing the .dwp and original samples
+       - Security: don't run untrusted binaries — prefer an isolated VM or container for conversions.
+  --></body>
 </html>
