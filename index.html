@@ -1,11 +1,10 @@
-<!doctype html>
-
+    <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>WAV → DWP Converter</title>
-  <meta name="description" content="Mobile-friendly WAV → DWP tool with touch drag, advanced zone editor, backend hook and packaging for GitHub Pages." />
+  <title>WAV → DWP Converter (Standalone)</title>
+  <meta name="description" content="Mobile-friendly WAV → DWP tool. Upload WAVs, map zones, export a ZIP or send to backend to generate a DWP." />
   <style>
     :root{--bg:#060607;--panel:#0f1113;--accent:#1db954;--muted:#9aa0a6;--glass:rgba(255,255,255,0.03);--radius:12px}
     *{box-sizing:border-box}
@@ -37,279 +36,148 @@
     <div class="header">
       <div class="logo">FL</div>
       <div>
-        <div class="title">WAV → DWP Converter (Mobile Complete)</div>
-        <div class="subtitle">Touch drag, advanced zone editor, server conversion & packager</div>
-      </div>
-    </div><div class="panels">
-  <div class="card">
-    <label>Upload WAV files (touch-friendly)</label>
-    <input id="fileInput" type="file" accept="audio/wav,audio/x-wav" multiple />
-    <div id="fileList" style="margin-top:8px"></div>
-
-    <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.04)"/>
-
-    <label>Selected zone editor</label>
-    <div class="zone-controls">
-      <div>
-        <label>Start Key</label>
-        <select id="startKey"></select>
-      </div>
-      <div>
-        <label>End Key</label>
-        <select id="endKey"></select>
-      </div>
-      <div>
-        <label>Velocity Low</label>
-        <input id="velLow" type="range" min="0" max="127" value="0" />
-      </div>
-      <div>
-        <label>Velocity High</label>
-        <input id="velHigh" type="range" min="0" max="127" value="127" />
-      </div>
-      <div>
-        <label>Crossfade (ms)</label>
-        <input id="crossfade" type="number" value="10" />
-      </div>
-      <div>
-        <label>Loop Start (ms)</label>
-        <input id="loopStart" type="number" value="0" />
+        <div class="title">WAV → DWP Converter (Standalone)</div>
+        <div class="subtitle">Upload WAVs, map zones, export ZIP or generate .dwp server-side</div>
       </div>
     </div>
 
-    <div style="margin-top:10px;display:flex;gap:8px">
-      <button class="btn" id="applyZone">Apply to selected zone(s)</button>
-      <button class="btn" id="addVelocityLayer">Add Velocity Layer</button>
+    <div class="panels">
+      <div class="card">
+        <label>Upload WAV files (mobile-friendly)</label>
+        <input id="fileInput" type="file" accept="audio/wav,audio/x-wav" multiple />
+        <div id="fileList" style="margin-top:8px"></div>
+
+        <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.04)"/>
+
+        <label>Zone editor</label>
+        <div class="zone-controls">
+          <div><label>Start Key</label><select id="startKey"></select></div>
+          <div><label>End Key</label><select id="endKey"></select></div>
+          <div><label>Vel Low</label><input id="velLow" type="range" min="0" max="127" value="0" /></div>
+          <div><label>Vel High</label><input id="velHigh" type="range" min="0" max="127" value="127" /></div>
+          <div><label>Crossfade (ms)</label><input id="crossfade" type="number" value="10" /></div>
+          <div><label>Loop Start (ms)</label><input id="loopStart" type="number" value="0" /></div>
+        </div>
+
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button class="btn" id="applyZone">Apply to selected</button>
+          <button class="btn" id="addVelocityLayer">Add velocity layer</button>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="touch-hint">Long-press file to pick it up, drag across zones, release to drop. Two-finger tap toggles selection on some devices.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700">Mapping Grid</div>
+          <div style="color:var(--muted);font-size:13px">Tap zones to select; drag samples into zones</div>
+        </div>
+
+        <div style="height:12px"></div>
+        <div id="keyboardWrap" style="overflow:hidden;padding-bottom:8px">
+          <div class="piano-grid" id="pianoGrid"></div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+          <div id="zoneInfo" style="font-size:13px;color:var(--muted)">No zone selected</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn primary" id="exportZip">Export zip (placeholder .dwp)</button>
+            <button class="btn" id="sendBackend">Generate .dwp on server</button>
+            <button class="btn" id="packageGH">Package for GitHub Pages</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <label>Manifest (editable)</label>
+          <textarea id="manifest" style="height:120px">{
+  "programName":"My Program",
+  "author":"User",
+  "zones":[]
+}</textarea>
+        </div>
+
+      </div>
     </div>
 
-    <div style="margin-top:12px">
-      <div class="touch-hint">Touch instructions: long-press a file to pick it up, drag across zones, release to drop. Two-finger tap to toggle zone selection. Pinch to zoom keyboard (if device supports).</div>
+    <div class="card">
+      <label>Developer: Notes & Server Samples</label>
+      <div style="color:var(--muted);font-size:13px">This package includes Node.js and Python server samples that implement a best-effort .dwp generator (open-source implementation). See README for limitations and deployment instructions.</div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:center;align-items:center">
+      <small style="color:var(--muted)">Remember: this project provides a compatibility implementation; test on your target device and report issues in README.</small>
     </div>
   </div>
 
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div style="font-weight:700">Mapping Grid</div>
-      <div style="color:var(--muted);font-size:13px">Tap zones to select; drag samples into zones (mobile supported)</div>
-    </div>
-
-    <div style="height:12px"></div>
-    <div id="keyboardWrap" style="overflow:hidden;padding-bottom:8px">
-      <div class="piano-grid" id="pianoGrid"></div>
-    </div>
-
-    <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
-      <div id="zoneInfo" style="font-size:13px;color:var(--muted)">No zone selected</div>
-      <div style="display:flex;gap:8px">
-        <button class="btn primary" id="exportZip">Export zip (placeholder .dwp)</button>
-        <button class="btn" id="sendBackend">Send to backend (real .dwp)</button>
-        <button class="btn" id="packageGH">Package for GitHub Pages (.zip)</button>
-      </div>
-    </div>
-
-    <div style="margin-top:12px">
-      <label>Manifest (editable)</label>
-      <textarea id="manifest" style="height:120px">{
-
-"programName":"My Program", "author":"User", "zones":[] }</textarea> </div>
-
-</div>
-</div>
-
-<div class="card">
-  <label>Developer: Server sample (Node.js)</label>
-  <textarea id="serverSample" style="height:220px;white-space:pre-wrap">// Node.js Express endpoint example (server must be Windows with FL Studio & DirectWave installed)
-
-// Save as server.js and run with node. This is an example — adapt for your environment.
-
-const express = require('express'); const multer = require('multer'); const {spawn} = require('child_process'); const fs = require('fs'); const path = require('path');
-
-const upload = multer({dest:'uploads/'}); const app = express();
-
-app.post('/api/convert', upload.array('samples'), async (req, res) => { try{ const manifest = JSON.parse(req.body.manifest || '{}'); const jobDir = path.join(__dirname, 'jobs', Date.now().toString()); fs.mkdirSync(jobDir, {recursive:true}); // move samples for(const f of req.files){ fs.renameSync(f.path, path.join(jobDir, f.originalname)); } // write manifest fs.writeFileSync(path.join(jobDir, 'manifest.json'), req.body.manifest);
-
-// Now call a helper script that runs AutoHotkey or a preconfigured automation
-// that opens FL Studio, imports samples into DirectWave, maps zones per manifest,
-// then exports a .dwp to jobDir/output.dwp. That helper is system-specific.
-
-const helper = spawn('C:\\tools\\fl_automation.bat', [jobDir], {shell:true});
-helper.stdout.on('data', d=>console.log(d.toString()));
-helper.stderr.on('data', d=>console.error(d.toString()));
-helper.on('close', code=>{
-  if(code!==0) return res.status(500).send('conversion failed');
-  const outZip = path.join(jobDir, 'result.zip');
-  // zip output.dwp and samples (implement as you like)
-  // send file
-  res.download(outZip);
-});
-
-}catch(e){ console.error(e); res.status(500).send('server error') } });
-
-app.listen(3000, ()=>console.log('listening 3000')); </textarea>
-
-<div style="margin-top:8px;color:var(--muted)">Notes: the helper script typically uses AutoHotkey, PowerShell, or Python to control the FL Studio GUI (or use an official command-line API if available). You must have a licensed copy of FL Studio/DirectWave on the server. Run conversions in isolated VMs for security.</div>
-</div>
-
-<div style="display:flex;gap:8px;justify-content:center;align-items:center">
-  <small style="color:var(--muted)">Packaging & README will be created in the GitHub zip when you click Package for GitHub.</small>
-</div>
-
-  </div>  <!-- Libraries -->  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>  <script>
-    // Core client logic: touch drag, zone editor, export, packaging
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script>
+    // Minimal frontend logic (touch-friendly drag + export)
     const pianoGrid = document.getElementById('pianoGrid');
     const fileInput = document.getElementById('fileInput');
     const fileList = document.getElementById('fileList');
     const manifestEl = document.getElementById('manifest');
-    const serverSampleEl = document.getElementById('serverSample');
 
-    // zones: startKey/endKey per zone, but we model 60 single-key zones and allow stretching
-    let zones = Array.from({length:60}).map((_,i)=>({index:i, sample:null, start:i, end:i, velLow:0, velHigh:127, crossfade:10, loopStart:0, layers:[] }));
     let files = [];
-    let selectedZones = new Set();
-    let draggingFile = null;
-    let dragTouchId = null;
-
-    // keys list
-    const keys = [];
-    const base = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    let zones = Array.from({length:60}).map((_,i)=>({index:i,sample:null,start:i,end:i,velLow:0,velHigh:127,crossfade:10,loopStart:0,layers:[]}));
+    const keys = []; const base=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
     for(let i=0;i<60;i++){ keys.push(base[i%12]+(2+Math.floor(i/12))); }
-
-    function populateKeySelects(){
-      const startKey = document.getElementById('startKey');
-      const endKey = document.getElementById('endKey');
-      startKey.innerHTML = ''; endKey.innerHTML = '';
-      keys.forEach((k,i)=>{ const o=document.createElement('option'); o.value=i; o.text=k; startKey.appendChild(o.cloneNode(true)); endKey.appendChild(o.cloneNode(true)); });
-    }
+    function populateKeySelects(){ document.getElementById('startKey').innerHTML=''; document.getElementById('endKey').innerHTML=''; keys.forEach((k,i)=>{ const o=document.createElement('option'); o.value=i; o.text=k; document.getElementById('startKey').appendChild(o.cloneNode(true)); document.getElementById('endKey').appendChild(o.cloneNode(true)); }); }
     populateKeySelects();
 
-    function noteNameFromIndex(i){ return keys[i] || ('K'+i); }
+    function noteNameFromIndex(i){ return keys[i]||('K'+i); }
 
-    function renderGrid(){
-      pianoGrid.innerHTML='';
-      zones.forEach((z,i)=>{
-        const div=document.createElement('div'); div.className='zone'; div.dataset.index=i;
-        div.innerHTML=`<div style="pointer-events:none">${noteNameFromIndex(i)}${z.sample?'<div style="font-size:10px;color:var(--muted)">'+z.sample.name+'</div>':''}</div>`;
-        if(selectedZones.has(i)) div.classList.add('selected');
-        div.addEventListener('click', (ev)=>{ if(ev.shiftKey) toggleZoneSelect(i); else selectSingleZone(i); });
-        // allow drop
-        div.addEventListener('dragover', e=>e.preventDefault());
-        div.addEventListener('drop', e=>{ e.preventDefault(); const idx = e.dataTransfer.getData('fileIndex'); if(idx) assignSampleToZone(files[idx], i); });
-        // touch handlers to support mobile drop
-        div.addEventListener('touchmove', e=>{ if(draggingFile && dragTouchId===e.changedTouches[0].identifier){ e.preventDefault(); highlightZoneUnderTouch(e.changedTouches[0]); } });
-        div.addEventListener('touchend', e=>{ if(draggingFile && dragTouchId===e.changedTouches[0].identifier){ const idx = getZoneIndexFromTouch(e.changedTouches[0]); if(idx!==null) assignSampleToZone(draggingFile, idx); stopDrag(); } });
-        pianoGrid.appendChild(div);
-      });
-    }
+    function renderGrid(){ pianoGrid.innerHTML=''; zones.forEach((z,i)=>{ const div=document.createElement('div'); div.className='zone'; div.dataset.index=i; div.innerHTML=`<div style="pointer-events:none">${noteNameFromIndex(i)}${z.sample?'<div style="font-size:10px;color:var(--muted)">'+z.sample.name+'</div>':''}</div>`; div.addEventListener('click', ()=>{ selectZone(i); }); div.addEventListener('dragover', e=>e.preventDefault()); div.addEventListener('drop', e=>{ e.preventDefault(); const idx = e.dataTransfer.getData('fileIndex'); if(idx) assignSampleToZone(files[idx], i); }); pianoGrid.appendChild(div); }); }
 
-    function renderFiles(){
-      fileList.innerHTML='';
-      files.forEach((f,idx)=>{
-        const row=document.createElement('div'); row.className='file-row';
-        row.innerHTML = `<div style="flex:1"><strong>${f.name}</strong><br><small style='color:var(--muted)'>${(f.size/1024).toFixed(1)} KB</small></div>`;
-        const drag = document.createElement('div'); drag.className='btn'; drag.innerText='Pick (long-press)';
-        drag.addEventListener('touchstart', e=>{ e.preventDefault(); startTouchDrag(e, idx); });
-        drag.addEventListener('mousedown', e=>{ startMouseDrag(e, idx); });
-        const preview = document.createElement('button'); preview.className='btn'; preview.innerText='Preview'; preview.addEventListener('click', ()=>{ const url=URL.createObjectURL(f); new Audio(url).play(); });
-        row.appendChild(drag); row.appendChild(preview);
-        fileList.appendChild(row);
-      });
-    }
+    function renderFiles(){ fileList.innerHTML=''; files.forEach((f,idx)=>{ const row=document.createElement('div'); row.className='file-row'; row.innerHTML = `<div style="flex:1"><strong>${f.name}</strong><br><small style='color:var(--muted)'>${(f.size/1024).toFixed(1)} KB</small></div>`; const drag=document.createElement('div'); drag.className='btn'; drag.innerText='Drag'; drag.draggable=true; drag.addEventListener('dragstart', e=>{ e.dataTransfer.setData('fileIndex', idx); }); const preview=document.createElement('button'); preview.className='btn'; preview.innerText='Preview'; preview.addEventListener('click', ()=>{ const url=URL.createObjectURL(f); new Audio(url).play(); }); row.appendChild(drag); row.appendChild(preview); fileList.appendChild(row); }); }
 
     fileInput.addEventListener('change', e=>{ files = Array.from(e.target.files); renderFiles(); });
 
-    function startMouseDrag(e, fileIdx){ draggingFile = files[fileIdx]; document.body.style.cursor='grabbing'; window.addEventListener('mouseup', stopDrag); }
-    function startTouchDrag(e, fileIdx){ const t = e.changedTouches[0]; dragTouchId = t.identifier; draggingFile = files[fileIdx]; // show quick vibration if available
-      if(navigator.vibrate) navigator.vibrate(20);
-    }
-    function stopDrag(){ draggingFile = null; dragTouchId = null; document.body.style.cursor='default'; }
+    function assignSampleToZone(file, index){ zones[index].sample = file; zones[index].layers = [{name:file.name}]; renderGrid(); renderFiles(); selectZone(index); }
 
-    function getZoneIndexFromTouch(touch){ const el = document.elementFromPoint(touch.clientX, touch.clientY); if(!el) return null; const zone = el.closest('.zone'); if(!zone) return null; return Number(zone.dataset.index); }
-    function highlightZoneUnderTouch(touch){ const idx = getZoneIndexFromTouch(touch); // highlight visual
-      Array.from(document.querySelectorAll('.zone')).forEach(z=>z.style.boxShadow=''); if(idx!==null){ const el = document.querySelector(`.zone[data-index='${idx}']`); if(el) el.style.boxShadow='inset 0 0 0 3px rgba(29,185,84,0.08)'; }
-    }
+    function selectZone(i){ document.getElementById('zoneInfo').innerText = `Zone ${i} - ${noteNameFromIndex(i)} - ${zones[i].sample?zones[i].sample.name:'—'}`; document.getElementById('startKey').value=zones[i].start; document.getElementById('endKey').value=zones[i].end; document.getElementById('velLow').value=zones[i].velLow; document.getElementById('velHigh').value=zones[i].velHigh; document.getElementById('crossfade').value=zones[i].crossfade; document.getElementById('loopStart').value=zones[i].loopStart; }
 
-    function assignSampleToZone(file, index){ zones[index].sample = file; zones[index].layers = [{name:file.name, crossfade: zones[index].crossfade}]; renderGrid(); renderFiles(); selectSingleZone(index); }
+    document.getElementById('applyZone').addEventListener('click', ()=>{ const start=Number(document.getElementById('startKey').value); const end=Number(document.getElementById('endKey').value); const vl=Number(document.getElementById('velLow').value); const vh=Number(document.getElementById('velHigh').value); const cf=Number(document.getElementById('crossfade').value); for(const i=0;i<zones.length;i++){ if(zones[i].selected) { zones[i].start=start; zones[i].end=end; zones[i].velLow=vl; zones[i].velHigh=vh; zones[i].crossfade=cf; } } renderGrid(); });
 
-    function selectSingleZone(i){ selectedZones.clear(); selectedZones.add(i); renderGrid(); updateZoneInfo(i); }
-    function toggleZoneSelect(i){ if(selectedZones.has(i)) selectedZones.delete(i); else selectedZones.add(i); renderGrid(); }
-
-    function updateZoneInfo(i){ const z = zones[i]; document.getElementById('zoneInfo').innerText = `Zone ${i} (${noteNameFromIndex(i)}) - Sample: ${z.sample?z.sample.name:'—'} Start:${z.start} End:${z.end} Vel:${z.velLow}-${z.velHigh}`; document.getElementById('startKey').value = z.start; document.getElementById('endKey').value = z.end; document.getElementById('velLow').value = z.velLow; document.getElementById('velHigh').value = z.velHigh; document.getElementById('loopStart').value = z.loopStart; document.getElementById('crossfade').value = z.crossfade; }
-
-    document.getElementById('applyZone').addEventListener('click', ()=>{
-      const start = Number(document.getElementById('startKey').value);
-      const end = Number(document.getElementById('endKey').value);
-      const vl = Number(document.getElementById('velLow').value);
-      const vh = Number(document.getElementById('velHigh').value);
-      const cf = Number(document.getElementById('crossfade').value);
-      for(const i of Array.from(selectedZones)){ zones[i].start=start; zones[i].end=end; zones[i].velLow=vl; zones[i].velHigh=vh; zones[i].crossfade=cf; }
-      renderGrid();
-    });
-
-    document.getElementById('addVelocityLayer').addEventListener('click', ()=>{
-      if(selectedZones.size===0) return alert('Select zones first');
-      const fname = prompt('Velocity layer sample name (must be uploaded)');
-      if(!fname) return;
-      for(const i of selectedZones){ zones[i].layers.push({name:fname,crossfade: zones[i].crossfade}); }
-      alert('Layer added to selected zones — make sure file name matches uploaded sample');
-    });
+    document.getElementById('addVelocityLayer').addEventListener('click', ()=>{ const name=prompt('Enter uploaded sample file name for velocity layer'); if(!name) return; const idx = zones.findIndex(z=>z.sample && z.sample.name===name); if(idx===-1) return alert('No uploaded sample with that name'); for(const z of zones){ if(z.selected) z.layers.push({name}); } alert('Layer added'); });
 
     // Export ZIP (placeholder .dwp + samples + manifest)
     document.getElementById('exportZip').addEventListener('click', async ()=>{
       const zip = new JSZip(); const samplesFolder = zip.folder('samples');
       for(const z of zones){ if(z.sample) samplesFolder.file(z.sample.name, await z.sample.arrayBuffer()); }
       const manifestObj = {programName:JSON.parse(manifestEl.value||'{}').programName||'program',zones:zones.map(z=>({start:z.start,end:z.end,velLow:z.velLow,velHigh:z.velHigh,sample:z.sample?z.sample.name:null,layers:z.layers}))};
-      zip.file('manifest.json', JSON.stringify(manifestObj,null,2)); zip.file((manifestObj.programName||'program')+'.dwp','DWP_PLACEHOLDER
-This is a placeholder. Use server-side conversion to create a real .dwp');
+      zip.file('manifest.json', JSON.stringify(manifestObj,null,2));
+      zip.file((manifestObj.programName||'program')+'.dwp','DWP_PLACEHOLDER\\nThis is a placeholder. Use server to create a real DWP.');
       const blob = await zip.generateAsync({type:'blob'});
       const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(manifestObj.programName||'program')+'.zip'; a.click();
     });
 
-    // Backend send
+    // Send to backend endpoint for real dwp generation
     document.getElementById('sendBackend').addEventListener('click', async ()=>{
-      const endpoint = prompt('Backend endpoint URL','https://your-backend.example.com/api/convert'); if(!endpoint) return;
+      const endpoint = prompt('Backend endpoint URL','http://localhost:3000/api/convert');
+      if(!endpoint) return;
       const fd = new FormData();
       for(const z of zones){ if(z.sample) fd.append('samples', z.sample, z.sample.name); }
       fd.append('manifest', manifestEl.value);
       try{
         const res = await fetch(endpoint, {method:'POST', body:fd});
         if(!res.ok) return alert('Server error '+res.status);
-        const blob = await res.blob(); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='converted-from-backend.zip'; a.click();
+        const blob = await res.blob();
+        const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='result.zip'; a.click();
       }catch(e){ alert('Error: '+e.message); }
     });
 
-    // Package for GitHub: creates index.html (this file) and README, zipped
+    // Package for GH
     document.getElementById('packageGH').addEventListener('click', async ()=>{
       const zip = new JSZip();
-      // index.html: capture current document HTML as a static file (client-side snapshot)
-      const docHtml = `<!-- Save this as index.html for GitHub Pages -->
-` + document.documentElement.outerHTML;
-      zip.file('index.html', docHtml);
-      const readme = `# WAV → DWP Converter (FL Studio Mobile style)
-
-This repository contains a single-file web app that:
-
-- Provides a touch-friendly mapping UI
-- Lets users upload WAVs and map them to keyboard zones
-- Exports a placeholder .dwp + samples manifest
-- Includes a server-side example to generate real .dwp using FL Studio/DirectWave
-
-## How to use
-- Open index.html in a browser (mobile friendly).
-- Upload WAVs, map them, edit manifest.json, and use the backend endpoint to convert.
-
-## Server
-See server sample in the app (server.js). The server must run on Windows with FL Studio & DirectWave installed. Use automation scripts (AutoHotkey/PowerShell) to script the conversion.
-
-## License
-This is provided as-is. You must own a licensed copy of FL Studio/DirectWave to perform server-side conversions.
-`;
-      zip.file('README.md', readme);
-      zip.file('server-sample.js', serverSampleEl.value);
+      zip.file('index.html', '<!-- Copy of frontend saved by package -->\\n' + document.documentElement.outerHTML);
+      zip.file('README.md', '# WAV → DWP Converter - frontend snapshot\\nSee server samples included in package for backends.');
       const blob = await zip.generateAsync({type:'blob'});
-      const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='wav-to-dwp-github-package.zip'; a.click();
+      const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='frontend-package.zip'; a.click();
     });
 
-    // initial render
-    renderGrid(); populateKeySelects();
-
-  </script>  <!-- Packaging comment: the Package for GitHub button will snapshot page HTML as index.html; you may want to edit the snapshot to remove dynamic or inline blob URLs before pushing to GH Pages. --></body>
+    renderGrid(); renderFiles();
+  </script>
+</body>
 </html>
