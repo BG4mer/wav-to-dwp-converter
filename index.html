@@ -1,17 +1,19 @@
-# index.html
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WAV → DWP Converter</title>
+
     <style>
         body { background: #111; color: #eee; font-family: Arial; margin: 0; padding: 20px; }
         .zone { background: #222; padding: 10px; border-radius: 10px; margin-top: 10px; }
         button { padding: 10px; margin: 10px 0; border: none; border-radius: 8px; background: #0a84ff; color: white; font-weight: bold; }
     </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
 </head>
+
 <body>
     <h1>WAV → DWP Converter</h1>
 
@@ -23,65 +25,4 @@
     <script src="app.js"></script>
 </body>
 </html>
-```
 
----
-
-# app.js
-```javascript
-// FRONTEND: Fully packs WAVs into the DWP zip so FL Studio won't say missing/corrupted.
-
-async function createDWP(wavFile) {
-    const JSZip = window.JSZip;
-    const zip = new JSZip();
-
-    // Put WAV directly in root so DirectWave ALWAYS finds it
-    zip.file("sample.wav", wavFile);
-
-    // Minimal DWP layout DirectWave accepts
-    const dwpContent = `<?xml version="1.0"?>
-<DirectWavePresets>
-  <Program>
-    <Name>Converted Sample</Name>
-    <Zone>
-      <RootNote>60</RootNote>
-      <HiNote>127</HiNote>
-      <LoNote>0</LoNote>
-      <SampleName>sample.wav</SampleName>
-    </Zone>
-  </Program>
-</DirectWavePresets>`;
-
-    zip.file("program.dwp", dwpContent);
-
-    return zip.generateAsync({ type: "blob" });
-}
-
-// UI logic
-const wavInput = document.getElementById("wavInput");
-const status = document.getElementById("status");
-const convertBtn = document.getElementById("convertBtn");
-
-convertBtn.onclick = async () => {
-    const file = wavInput.files[0];
-    if (!file) {
-        status.innerText = "No file selected";
-        return;
-    }
-
-    status.innerText = "Packing…";
-
-    try {
-        const dwpZip = await createDWP(file);
-
-        // Create download
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(dwpZip);
-        a.download = "ConvertedSample.zip";
-        a.click();
-
-        status.innerText = "Done. Import that zip into DirectWave.";
-    } catch (e) {
-        status.innerText = "Error converting: " + e;
-    }
-};
