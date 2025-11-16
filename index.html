@@ -45,7 +45,7 @@
 </div>
 
 <button id="convertBtn">Generate DWP ZIP</button>
-<button id="installBtn">Install to FL Studio Mobile</button>
+<button id="installBtn" class="mobileBtn">Install to FL Studio Mobile</button>
 
 <div id="status"></div>
 
@@ -64,7 +64,7 @@ tabs.forEach((tab, idx) => {
 });
 tabs[0].click();
 
-// Draggable zone creation
+// Draggable zones
 const zoneArea = document.getElementById('zoneArea');
 function createZone(x=10,y=10,w=60,h=50){
  let zone = document.createElement('div');
@@ -88,7 +88,35 @@ function createZone(x=10,y=10,w=60,h=50){
 }
 createZone();
 createZone(80,50,60,50);
+
+// Mobile-compatible download
+function downloadBlob(blob, filename) {
+    if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+        window.navigator.msSaveOrOpenBlob(blob, filename);
+    } else {
+        if (navigator.userAgent.match(/iPhone|iPad|iPod/)) {
+            const reader = new FileReader();
+            reader.onloadend = function() {
+                const link = document.createElement('a');
+                link.href = reader.result;
+                link.download = filename;
+                link.click();
+            };
+            reader.readAsDataURL(blob);
+        } else {
+            const a = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    }
+}
 </script>
 <script src="app.js"></script>
 </body>
 </html>
+
