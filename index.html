@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>WAV → DWP — Pro (Full)</title>
+<meta name="description" content="WAV → DWP: silence detection, markers, velocity layers, crossfade, mobile installer & deploy buttons." />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<style>
+  :root{
+    --bg:#0e0e10; --panel:#141416; --accent:#ff7a1a; --accent2:#ffb07a; --muted:#9aa0a6;
+    --radius:12px; --pad:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;background:linear-gradient(180deg,var(--bg),#070707);color:#f5f5f5}
+  header{display:flex;gap:12px;align-items:center;padding:14px;background:linear-gradient(90deg,var(--accent),var(--accent2));}
+  .logo{width:46px;height:46px;border-radius:10px;background:rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;font-weight:800}
+  .title{font-size:18px;font-weight:800}
+  .container{max-width:1100px;margin:16px auto;padding:14px;display:grid;grid-template-columns:360px 1fr;gap:16px}
+  @media(max-width:980px){.container{grid-template-columns:1fr;padding:10px}}
+  .panel{background:var(--panel);border-radius:var(--radius);padding:12px;box-shadow:0 8px 28px rgba(0,0,0,0.5)}
+  .tabs{display:flex;gap:8px;margin-bottom:10px}
+  .tab{flex:1;padding:8px;border-radius:10px;text-align:center;color:var(--muted);cursor:pointer}
+  .tab.active{background:linear-gradient(90deg,rgba(255,122,26,0.12),rgba(255,176,122,0.04));color:var(--accent);font-weight:700}
+  label{display:block;color:var(--muted);margin-top:10px;font-size:13px}
+  input[type=file],input[type=number],select,textarea{width:100%;padding:10px;border-radius:10px;border:none;background:#0b0b0d;color:#fff}
+  .btn{display:inline-flex;gap:8px;align-items:center;padding:10px 12px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#191919;font-weight:700;cursor:pointer}
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+  #waveform{height:160px;border-radius:8px;background:#050505;overflow:hidden}
+  #zoneArea{position:relative;height:220px;background:#0b0b0b;border-radius:10px;border:1px solid rgba(255,255,255,0.03);overflow:hidden}
+  .zone{position:absolute;background:linear-gradient(180deg,rgba(255,122,26,0.96),rgba(255,176,122,0.9));border-radius:8px;border:2px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;color:#191919;font-weight:800;touch-action:none}
+  .zone .info{font-size:12px;color:#111;padding:6px}
+  .zone .fadeHandle{position:absolute;right:6px;bottom:6px;width:18px;height:18px;border-radius:4px;background:rgba(0,0,0,0.18)}
+  .regionLabel{position:absolute;left:6px;top:6px;background:rgba(0,0,0,0.18);padding:3px 6px;border-radius:6px;font-size:12px}
+  .controlRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .small{padding:8px 10px;border-radius:8px}
+  #status{margin-top:12px;padding:10px;border-radius:10px;background:linear-gradient(180deg,#0b0b0b,#080808);border:1px solid rgba(255,255,255,0.03);color:var(--muted)}
+  .list{max-height:200px;overflow:auto;margin-top:8px;padding-right:6px}
+  .sampleItem{display:flex;justify-content:space-between;gap:8px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);margin-bottom:6px}
+  .deployRow{display:flex;gap:8px;margin-top:8px}
+  .deployRow a{flex:1;padding:8px;border-radius:8px;text-decoration:none;color:#121212;background:#fff;display:inline-block;text-align:center}
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo">FL</div>
+    <div>
+      <div class="title">WAV → DWP Converter Pro</div>
+      <div style="font-size:12px;color:#f0e6d8">All-in-one: silence detect, markers, velocity layers, crossfade, mobile install</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- left column -->
+    <section class="panel">
+      <div class="tabs" role="tablist">
+        <div class="tab active" data-tab="loadTab">Load</div>
+        <div class="tab" data-tab="splitTab">Split</div>
+        <div class="tab" data-tab="zonesTab">Zones</div>
+      </div>
+
+      <div id="loadTab" class="tabContent" style="display:block">
+        <h3>Input WAV</h3>
+        <label>Upload single chromatic WAV (or use demo)</label>
+        <input id="fileInput" type="file" accept="audio/wav"/>
+        <div class="controlRow">
+          <button id="useDemo" class="btn ghost small">Load Demo Samples</button>
+          <button id="analyzeBtn" class="btn small">Analyze (silence detect)</button>
+        </div>
+
+        <label style="margin-top:12px">Samples (embedded + uploads)</label>
+        <div id="samplesList" class="list"></div>
+      </div>
+
+      <div id="splitTab" class="tabContent" style="display:none">
+        <h3>Split Settings</h3>
+        <label>Auto slices (equal)</label>
+        <input id="autoSlices" type="number" value="60" min="1"/>
+        <label>Min silence (ms)</label>
+        <input id="minSilenceMs" type="number" value="80" min="20"/>
+        <label>Silence threshold (dB)</label>
+        <input id="silenceDb" type="number" value="-40" />
+        <div class="controlRow">
+          <button id="autoSplit" class="btn">Auto-split by silence</button>
+          <button id="equalSplit" class="btn ghost">Equal split</button>
+        </div>
+
+        <h4 style="margin-top:12px">Markers (manual)</h4>
+        <div class="controlRow">
+          <button id="addMarkerBtn" class="btn ghost small">Add marker at playhead</button>
+          <button id="clearMarkersBtn" class="btn small">Clear markers</button>
+        </div>
+        <div id="markerList" class="list" aria-live="polite"></div>
+      </div>
+
+      <div id="zonesTab" class="tabContent" style="display:none">
+        <h3>Zones & Layers</h3>
+        <label>Root MIDI note</label>
+        <input id="rootMidi" type="number" value="36" min="0" max="127"/>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="addZoneBtn" class="btn small">Add Zone</button>
+          <button id="clearZonesBtn" class="btn ghost small">Clear Zones</button>
+        </div>
+
+        <label style="margin-top:12px">Zone list</label>
+        <div id="zoneList" class="list"></div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button id="exportZipBtn" class="btn">Export ZIP (program.dwp + samples)</button>
+        <button id="installBtn" class="btn ghost">Install (Android / FS API)</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <label>One-click deploy (server-side splitter)</label>
+        <div class="deployRow">
+          <a id="renderBtn" href="#" target="_blank">Deploy to Render</a>
+          <a id="railwayBtn" href="#" target="_blank">Deploy to Railway</a>
+        </div>
+      </div>
+
+      <div id="status" aria-live="polite">Status: ready</div>
+    </section>
+
+    <!-- right column -->
+    <section>
+      <div class="panel">
+        <h3>Waveform & Markers</h3>
+        <div id="waveform"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <div class="controlRow">
+            <button id="play" class="btn ghost small">Play</button>
+            <button id="pause" class="btn ghost small">Pause</button>
+            <button id="stop" class="btn ghost small">Stop</button>
+          </div>
+          <div style="color:var(--muted)">Markers: <span id="markerCount">0</span></div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:12px">
+        <h3>Zone Editor / Crossfade</h3>
+        <div id="zoneArea" style="height:220px"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+          <label style="margin:0">Crossfade (ms)</label>
+          <input id="globalCrossfade" type="number" value="10" min="0" style="width:110px"/>
+        </div>
+        <div id="layersInfo" class="list"></div>
+      </div>
+    </section>
+  </main>
+
+<script src="https://unpkg.com/wavesurfer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+<script>
+/* ================== Utilities ================== */
+function logStatus(msg){ document.getElementById('status').innerText = 'Status: ' + msg; }
+function elt(tag,attrs={},...children){ const e=document.createElement(tag); for(const k in attrs) e.setAttribute(k,attrs[k]); children.forEach(c=>{ if(typeof c==='string') e.appendChild(document.createTextNode(c)); else if(c) e.appendChild(c); }); return e; }
+function downloadBlob(blob, filename){
+  if(window.navigator && window.navigator.msSaveOrOpenBlob){ window.navigator.msSaveOrOpenBlob(blob, filename); return; }
+  if(navigator.userAgent.match(/iPhone|iPad|iPod/)){
+    const reader=new FileReader();
+    reader.onloadend=()=>{ const a=document.createElement('a'); a.href=reader.result; a.download=filename; a.click(); };
+    reader.readAsDataURL(blob);
+  } else if(window.showSaveFilePicker){
+    // user will be prompted by install/export flow to choose location; leave fallback to showSaveFilePicker in install button
+    const url = URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); setTimeout(()=>URL.revokeObjectURL(url),2000);
+  } else {
+    const url = URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.style.display='none'; a.href=url; a.download=filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(url),2000);
+  }
+}
+
+/* ================== App State ================== */
+const App = {
+  wavesurfer: null,
+  audioBuffer: null,
+  file: null,
+  markers: [],   // {time}
+  slices: [],    // {name, blob, start, end}
+  zones: [],     // {el, left, top, width, height, layers:[], crossfade}
+  demoSamples: []
+};
+
+/* ================== WaveSurfer init ================== */
+function initWaveSurfer(){
+  if(App.wavesurfer) try{ App.wavesurfer.destroy(); }catch(e){}
+  App.wavesurfer = WaveSurfer.create({
+    container: '#waveform',
+    waveColor: '#222',
+    progressColor: '#ff7a1a',
+    height: 140,
+    normalize: true,
+    responsive: true
+  });
+
+  App.wavesurfer.on('ready', ()=>{ logStatus('WAV loaded: ' + App.wavesurfer.getDuration().toFixed(2) + 's'); });
+  App.wavesurfer.on('region-updated', (reg)=>{ renderMarkerList(); });
+  App.wavesurfer.on('region-created', (reg)=>{ renderMarkerList(); });
+  App.wavesurfer.on('finish', ()=>{ /* nothing for now */ });
+}
+initWaveSurfer();
+
+/* ================== Demo sample generation (runtime) ================== */
+// Generate a simple sine WAV blob via OfflineAudioContext
+async function generateSineWav(seconds=1, freq=440, sampleRate=44100){
+  const ctx = new (window.OfflineAudioContext || window.AudioContext)(1, sampleRate*seconds, sampleRate);
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = 'sine';
+  o.frequency.value = freq;
+  g.gain.value = 0.6;
+  o.connect(g);
+  g.connect(ctx.destination);
+  o.start(0); o.stop(seconds);
+  const rendered = await ctx.startRendering();
+  // convert to WAV
+  return audioBufferToWavBlob(rendered);
+}
+function audioBufferToWavBlob(buffer){
+  const sampleRate = buffer.sampleRate;
+  const ch = buffer.numberOfChannels;
+  const len = buffer.length;
+  const tmp = new Float32Array(len * ch);
+  for(let c=0;c<ch;c++){
+    const data = buffer.getChannelData(c);
+    for(let i=0;i<len;i++) tmp[i*ch + c] = data[i];
+  }
+  const wavBuffer = new ArrayBuffer(44 + tmp.length * 2);
+  const view = new DataView(wavBuffer);
+  let offset = 0;
+  function writeStr(s){ for(let i=0;i<s.length;i++) view.setUint8(offset++, s.charCodeAt(i)); }
+  writeStr('RIFF'); view.setUint32(offset, 36 + tmp.length*2, true); offset += 4;
+  writeStr('WAVE'); writeStr('fmt '); view.setUint32(offset, 16, true); offset += 4;
+  view.setUint16(offset, 1, true); offset += 2; // PCM
+  view.setUint16(offset, ch, true); offset += 2;
+  view.setUint32(offset, sampleRate, true); offset += 4;
+  view.setUint32(offset, sampleRate * ch * 2, true); offset += 4;
+  view.setUint16(offset, ch * 2, true); offset += 2;
+  view.setUint16(offset, 16, true); offset += 2;
+  writeStr('data'); view.setUint32(offset, tmp.length * 2, true); offset += 4;
+  for(let i=0;i<tmp.length;i++){
+    let s = Math.max(-1, Math.min(1, tmp[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    offset += 2;
+  }
+  return new Blob([view], {type:'audio/wav'});
+}
+async function loadDemoSamples(){
+  App.demoSamples = [];
+  logStatus('Generating demo samples…');
+  const b1 = await generateSineWav(0.5, 440); // A4
+  const b2 = await generateSineWav(0.5, 523.25); // C5
+  App.demoSamples.push({name:'demo_A4.wav', blob:b1});
+  App.demoSamples.push({name:'demo_C5.wav', blob:b2});
+  renderSamplesList();
+  logStatus('Demo samples ready');
+}
+
+/* ================== samples list UI ================== */
+function renderSamplesList(){
+  const list = document.getElementById('samplesList'); list.innerHTML = '';
+  // embedded demos
+  App.demoSamples.forEach((s, i)=>{
+    const item = elt('div',{class:'sampleItem'});
+    item.appendChild(elt('div',{}, s.name + ' (embedded)'));
+    const controls = elt('div');
+    const loadBtn = elt('button', {class:'btn small'}, 'Use'); loadBtn.addEventListener('click', ()=>{ // load into app as primary file
+      App.file = new File([s.blob], s.name, {type:'audio/wav'}); loadAudioFile(App.file);
+    });
+    controls.appendChild(loadBtn);
+    item.appendChild(controls);
+    list.appendChild(item);
+  });
+  // uploaded file
+  if(App.file){
+    const item = elt('div',{class:'sampleItem'});
+    item.appendChild(elt('div',{}, App.file.name + ' (uploaded)'));
+    const controls = elt('div');
+    const play = elt('button', {class:'btn small'}, 'Play'); play.addEventListener('click', ()=>{ if(App.wavesurfer) App.wavesurfer.play(); });
+    controls.appendChild(play);
+    item.appendChild(controls);
+    list.appendChild(item);
+  }
+}
+
+/* ================== load audio ================== */
+async function loadAudioFile(file){
+  try{
+    App.file = file;
+    const ab = await file.arrayBuffer();
+    const ctx = new (window.OfflineAudioContext || window.AudioContext)(1,1,44100);
+    App.audioBuffer = await ctx.decodeAudioData(ab.slice(0));
+    initWaveSurfer();
+    App.wavesurfer.load(URL.createObjectURL(file));
+    renderSamplesList();
+  }catch(err){ console.error(err); logStatus('Failed to load audio: ' + err.message); }
+}
+
+/* ================== Silence detection ================== */
+function detectSilence(buffer, options={minSilenceLen:80, silenceThreshDb:-40}){
+  // window RMS approach
+  const sampleRate = buffer.sampleRate;
+  const channelData = buffer.numberOfChannels ? buffer.getChannelData(0) : buffer.getChannelData(0);
+  const winMs = 20; // 20ms window
+  const winSize = Math.floor(sampleRate * winMs / 1000);
+  const minSilenceLen = options.minSilenceLen || 80; // ms
+  const minSilenceFrames = Math.floor(minSilenceLen / winMs);
+  // compute RMS per window
+  const rms = [];
+  for(let i=0;i<channelData.length;i+=winSize){
+    let sum=0;
+    for(let j=i;j<Math.min(i+winSize, channelData.length); j++){
+      const v = channelData[j];
+      sum += v*v;
+    }
+    const r = Math.sqrt(sum / winSize);
+    rms.push(r);
+  }
+  // convert to dBFS
+  const maxR = Math.max(...rms);
+  const rmsDb = rms.map(r => 20 * Math.log10((r / (maxR || 1)) + 1e-9));
+  // silence threshold
+  const thresh = options.silenceThreshDb || -40; // relative to max
+  // find contiguous silent windows >= minSilenceFrames
+  const silenceRanges = [];
+  let inSilence=false, startIdx=0;
+  for(let i=0;i<rmsDb.length;i++){
+    if(rmsDb[i] < thresh){
+      if(!inSilence){ inSilence=true; startIdx=i; }
+    } else {
+      if(inSilence){ const len = i - startIdx; if(len >= minSilenceFrames) silenceRanges.push([startIdx*winMs/1000, i*winMs/1000]); inSilence=false; }
+    }
+  }
+  if(inSilence){
+    const len = rmsDb.length - startIdx;
+    if(len >= minSilenceFrames) silenceRanges.push([startIdx*winMs/1000, rmsDb.length*winMs/1000]);
+  }
+  // produce split markers between silences
+  const markers = [];
+  let last=0;
+  for(const s of silenceRanges){
+    // use silence start/end to produce cut points (take midpoint as separation)
+    const cut = (s[0]+s[1])/2;
+    if(cut - last > 0.02) { markers.push(cut); last = cut;}
+  }
+  // final check: ensure markers sorted and within bounds
+  return markers.filter(t=>t>0 && t < buffer.duration).sort((a,b)=>a-b);
+}
+
+/* ================== markers UI using wavesurfer regions ================== */
+function clearRegions(){
+  if(!App.wavesurfer) return;
+  // remove all regions
+  const regs = App.wavesurfer.regions.list;
+  for(const id in regs) regs[id].remove();
+}
+function renderMarkerList(){
+  const list = document.getElementById('markerList'); list.innerHTML = '';
+  if(!App.wavesurfer) return;
+  const regs = App.wavesurfer.regions.list;
+  const ids = Object.keys(regs);
+  document.getElementById('markerCount').innerText = ids.length;
+  ids.forEach((id, idx)=>{
+    const r = regs[id];
+    const item = elt('div', {class:'sampleItem'});
+    item.appendChild(elt('div',{}, `Region ${idx+1}: ${r.start.toFixed(2)}s → ${r.end.toFixed(2)}s`));
+    const controls = elt('div');
+    const remove = elt('button', {class:'btn small'}, 'Delete');
+    remove.addEventListener('click', ()=>{ r.remove(); renderMarkerList(); });
+    controls.appendChild(remove);
+    item.appendChild(controls);
+    list.appendChild(item);
+  });
+}
+
+/* ================== split (region-based or equal) ================== */
+function regionsToSlices(){
+  if(!App.wavesurfer) return [];
+  const regs = App.wavesurfer.regions.list;
+  const ids = Object.keys(regs).sort((a,b)=>regs[a].start - regs[b].start);
+  const slices = ids.map((id, i)=>({ name:`sample_${i}.wav`, start: regs[id].start, end: regs[id].end }));
+  return slices;
+}
+async function sliceAndExportFromRegions(regions, rootMidi){
+  // decode original buffer for slicing
+  const buffer = App.audioBuffer;
+  if(!buffer) { logStatus('No audio buffer'); return; }
+  const out = [];
+  for(let i=0;i<regions.length;i++){
+    const s = regions[i];
+    const blob = audioBufferToWavBlob(buffer, s.start, s.end);
+    out.push({ name: s.name || `sample_${i}.wav`, blob, start:s.start, end:s.end });
+  }
+  // build zip
+  const zip = new JSZip();
+  const zoneXML = [];
+  for(let i=0;i<out.length;i++){
+    zip.file(out[i].name, out[i].blob);
+    zoneXML.push(`<Zone><RootNote>${rootMidi + i}</RootNote><HiNote>${rootMidi + i}</HiNote><LoNote>${rootMidi + i}</LoNote><SampleName>${out[i].name}</SampleName></Zone>`);
+  }
+  const xml = `<?xml version="1.0"?><DirectWavePresets><Program><Name>Converted Program</Name>${zoneXML.join('')}</Program></DirectWavePresets>`;
+  zip.file('program.dwp', xml);
+  const blob = await zip.generateAsync({type:'blob'});
+  return { blob, slices: out };
+}
+
+// helper to slice AudioBuffer -> Blob for a time region
+function audioBufferToWavBlob(buffer, startSec=0, endSec=null){
+  const sampleRate = buffer.sampleRate;
+  const ch = buffer.numberOfChannels;
+  const startOffset = Math.floor(startSec * sampleRate);
+  const endOffset = Math.floor((endSec === null ? buffer.length : Math.min(buffer.length, Math.floor(endSec * sampleRate))));
+  const len = endOffset - startOffset;
+  const tmp = new Float32Array(len * ch);
+  for(let c=0;c<ch;c++){
+    const channel = buffer.getChannelData(c);
+    for(let i=0;i<len;i++) tmp[i*ch + c] = channel[startOffset + i];
+  }
+  const wavBuffer = new ArrayBuffer(44 + tmp.length * 2);
+  const view = new DataView(wavBuffer);
+  let offset = 0;
+  function writeStr(s){ for(let i=0;i<s.length;i++) view.setUint8(offset++, s.charCodeAt(i)); }
+  writeStr('RIFF'); view.setUint32(offset, 36 + tmp.length * 2, true); offset += 4;
+  writeStr('WAVE'); writeStr('fmt '); view.setUint32(offset, 16, true); offset += 4;
+  view.setUint16(offset, 1, true); offset += 2;
+  view.setUint16(offset, ch, true); offset += 2;
+  view.setUint32(offset, sampleRate, true); offset += 4;
+  view.setUint32(offset, sampleRate * ch * 2, true); offset += 4;
+  view.setUint16(offset, ch * 2, true); offset += 2;
+  view.setUint16(offset, 16, true); offset += 2;
+  writeStr('data'); view.setUint32(offset, tmp.length * 2, true); offset += 4;
+  for(let i=0;i<tmp.length;i++){
+    let s = Math.max(-1, Math.min(1, tmp[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    offset += 2;
+  }
+  return new Blob([view], {type:'audio/wav'});
+}
+
+/* ================== UI Event bindings ================== */
+document.getElementById('useDemo').addEventListener('click', async ()=>{
+  await loadDemoSamples();
+  logStatus('Demo samples loaded — hit Use on the sample list to load into the waveform.');
+});
+document.getElementById('fileInput').addEventListener('change', async (e)=>{
+  const f = e.target.files[0];
+  if(!f){ logStatus('No file'); return; }
+  logStatus('Loading file...');
+  await loadAudioFile(f);
+  // show ready
+  renderSamplesList();
+});
+
+document.getElementById('analyzeBtn').addEventListener('click', ()=>{
+  if(!App.audioBuffer) return logStatus('Load a WAV first');
+  logStatus('Detecting silence...');
+  const minSilenceMs = Number(document.getElementById('minSilenceMs').value || 80);
+  const silenceDb = Number(document.getElementById('silenceDb').value || -40);
+  const markers = detectSilence(App.audioBuffer, {minSilenceLen: minSilenceMs, silenceThreshDb: silenceDb});
+  // create regions between markers
+  clearRegions();
+  const duration = App.audioBuffer.duration;
+  let prev = 0;
+  const regions = [];
+  for(let i=0;i<=markers.length;i++){
+    const start = i===0 ? 0 : markers[i-1];
+    const end = i < markers.length ? markers[i] : duration;
+    // create region only if long enough
+    if(end - start > 0.02){
+      const reg = App.wavesurfer.addRegion({start, end, color: 'rgba(255,122,26,0.12)', drag:true, resize:true});
+      regions.push(reg);
+    }
+  }
+  renderMarkerList();
+  logStatus('Silence detection created ' + regions.length + ' regions');
+});
+
+document.getElementById('addMarkerBtn').addEventListener('click', ()=>{
+  if(!App.wavesurfer) return logStatus('Load WAV first');
+  const t = App.wavesurfer.getCurrentTime();
+  // default region of small length
+  const r = App.wavesurfer.addRegion({start: Math.max(0, t - 0.05), end: t + 0.25, color:'rgba(255,122,26,0.14)', drag:true, resize:true});
+  renderMarkerList();
+  logStatus('Added region at ' + t.toFixed(2) + 's');
+});
+document.getElementById('clearMarkersBtn').addEventListener('click', ()=>{
+  clearRegions(); renderMarkerList(); logStatus('All regions cleared');
+});
+
+document.getElementById('equalSplit').addEventListener('click', async ()=>{
+  if(!App.audioBuffer) return logStatus('Load a WAV first');
+  const parts = Number(document.getElementById('autoSlices').value) || 60;
+  clearRegions();
+  const dur = App.audioBuffer.duration;
+  const len = dur / parts;
+  for(let i=0;i<parts;i++){
+    const s = i*len; const e = (i===parts-1) ? dur : s+len;
+    App.wavesurfer.addRegion({start:s, end:e, color:'rgba(255,122,26,0.12)', drag:true, resize:true});
+  }
+  renderMarkerList();
+  logStatus('Equal-split into ' + parts + ' regions');
+});
+
+document.getElementById('autoSplit').addEventListener('click', ()=>{ document.getElementById('analyzeBtn').click(); });
+
+document.getElementById('play').addEventListener('click', ()=>{ if(App.wavesurfer) App.wavesurfer.play(); });
+document.getElementById('pause').addEventListener('click', ()=>{ if(App.wavesurfer) App.wavesurfer.pause(); });
+document.getElementById('stop').addEventListener('click', ()=>{ if(App.wavesurfer) App.wavesurfer.stop(); });
+
+/* ================== Zones UI ================== */
+function refreshZoneList(){
+  const zlist = document.getElementById('zoneList'); zlist.innerHTML = '';
+  App.zones.forEach((z, idx)=>{
+    const item = elt('div', {class:'sampleItem'});
+    const left = elt('div',{}, `Zone ${idx+1} — ${Math.round(z.left)}x,${Math.round(z.top)}y — ${Math.round(z.width)}w`);
+    const controls = elt('div');
+    const previewBtn = elt('button', {class:'btn small'}, 'Preview');
+    previewBtn.addEventListener('click', async ()=>{
+      // preview assigned slice if any (just open first sample)
+      if(App.slices && App.slices.length){
+        const blob = App.slices[0].blob; const url = URL.createObjectURL(blob); const a = new Audio(url); a.play();
+      } else logStatus('No slices to preview');
+    });
+    const addLayer = elt('button', {class:'btn ghost small'}, 'Add layer');
+    addLayer.addEventListener('click', ()=>{ z.layers.push({sample:null, velLow:0, velHigh:127}); renderLayersInfo(); updateStatus('Layer added to zone'); });
+    controls.appendChild(previewBtn); controls.appendChild(addLayer);
+    item.appendChild(left); item.appendChild(controls);
+    zlist.appendChild(item);
+  });
+}
+function renderLayersInfo(){
+  const el = document.getElementById('layersInfo'); el.innerHTML = '';
+  App.zones.forEach((z, idx)=>{
+    const wrap = elt('div', {class:'sampleItem'});
+    wrap.appendChild(elt('div',{}, `Zone ${idx+1} — layers: ${z.layers.length}`));
+    const add = elt('button', {class:'btn small'}, 'Manage');
+    add.addEventListener('click', ()=>{ manageZoneLayers(idx); });
+    wrap.appendChild(add);
+    el.appendChild(wrap);
+  });
+}
+function manageZoneLayers(zoneIdx){
+  const z = App.zones[zoneIdx];
+  const items = z.layers.map((L,i)=>`${i+1}. ${L.sample||'(empty)'} vel ${L.velLow}-${L.velHigh}`).join('\n');
+  const newCount = prompt('Zone layers (comma-separated sample names or indexes). Current:\n' + items);
+  if(!newCount) return;
+  // quick parse: sample names -> assign if found in App.slices by name
+  const parts = newCount.split(',').map(s=>s.trim()).filter(Boolean);
+  z.layers = [];
+  parts.forEach(p=>{
+    // if p is a number assign slice by index
+    let L = {sample:null, velLow:0, velHigh:127};
+    if(/^\d+$/.test(p)){ const idx = Number(p)-1; if(App.slices && App.slices[idx]) L.sample = App.slices[idx].name; }
+    else L.sample = p;
+    z.layers.push(L);
+  });
+  renderLayersInfo();
+}
+
+/* ================== Add/clear zones and draggability ================== */
+document.getElementById('addZoneBtn').addEventListener('click', ()=>{
+  const el = createZoneElement(20 + App.zones.length * 8, 20 + App.zones.length * 6, 120, 48);
+  App.zones.push({el, left:parseInt(el.style.left), top:parseInt(el.style.top), width:parseInt(el.style.width), height:parseInt(el.style.height), layers:[], crossfade: Number(document.getElementById('globalCrossfade').value)});
+  refreshZoneList(); renderLayersInfo(); logStatus('Zone added');
+});
+document.getElementById('clearZonesBtn').addEventListener('click', ()=>{ App.zones.forEach(z=>z.el.remove()); App.zones=[]; refreshZoneList(); renderLayersInfo(); logStatus('Zones cleared'); });
+
+function createZoneElement(x,y,w,h){
+  const el = document.createElement('div'); el.className='zone';
+  el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.width = w + 'px'; el.style.height = h + 'px';
+  el.innerHTML = '<div class="info">ZONE</div><div class="fadeHandle"></div>';
+  document.getElementById('zoneArea').appendChild(el);
+  makeZoneDraggable(el);
+  return el;
+}
+function makeZoneDraggable(el){
+  let dragging=false, resizing=false, sx=0, sy=0, sLeft=0, sTop=0, sW=0, sH=0;
+  const handle = el.querySelector('.fadeHandle');
+  el.addEventListener('pointerdown', (e)=>{
+    if(e.target === handle){ resizing=true; sW = el.offsetWidth; sH = el.offsetHeight; sx = e.clientX; sy = e.clientY; el.setPointerCapture(e.pointerId); }
+    else { dragging=true; sLeft = el.offsetLeft; sTop = el.offsetTop; sx = e.clientX; sy = e.clientY; el.setPointerCapture(e.pointerId); }
+  });
+  el.addEventListener('pointermove', (e)=>{
+    if(!dragging && !resizing) return;
+    e.preventDefault();
+    if(dragging){ let nx = sLeft + (e.clientX - sx); let ny = sTop + (e.clientY - sy); nx = Math.max(0, Math.min(el.parentElement.clientWidth - el.offsetWidth, nx)); ny = Math.max(0, Math.min(el.parentElement.clientHeight - el.offsetHeight, ny)); el.style.left = nx + 'px'; el.style.top = ny + 'px'; }
+    if(resizing){ let nw = Math.max(32, sW + (e.clientX - sx)); let nh = Math.max(16, sH + (e.clientY - sy)); nw = Math.min(el.parentElement.clientWidth - el.offsetLeft, nw); nh = Math.min(el.parentElement.clientHeight - el.offsetTop, nh); el.style.width = nw + 'px'; el.style.height = nh + 'px'; }
+  });
+  el.addEventListener('pointerup', (e)=>{ dragging=false; resizing=false; try{ el.releasePointerCapture(e.pointerId); }catch(e){}; updateZoneState(); });
+}
+
+/* update zone geometry to state */
+function updateZoneState(){ App.zones.forEach(z=>{ z.left = parseInt(z.el.style.left); z.top = parseInt(z.el.style.top); z.width = parseInt(z.el.style.width); z.height = parseInt(z.el.style.height); }); refreshZoneList(); renderLayersInfo(); }
+
+/* ================== Export / Install ================== */
+document.getElementById('exportZipBtn').addEventListener('click', async ()=>{
+  try{
+    // prefer region-based slices
+    let regions = [];
+    if(App.wavesurfer && App.wavesurfer.regions){
+      const regs = App.wavesurfer.regions.list;
+      regions = Object.keys(regs).map(k=>({start: regs[k].start, end: regs[k].end}));
+    }
+    if(regions.length === 0){
+      // do equal split by autoSlices
+      const parts = Math.max(1, Number(document.getElementById('autoSlices').value || 60));
+      const dur = App.audioBuffer ? App.audioBuffer.duration : (App.wavesurfer ? App.wavesurfer.getDuration() : 0);
+      for(let i=0;i<parts;i++){ const s = i*dur/parts; const e = (i===parts-1)?dur:s+dur/parts; regions.push({start:s,end:e}); }
+    }
+    // create slice Blobs
+    const slices = [];
+    for(let i=0;i<regions.length;i++){
+      const s = regions[i];
+      const blob = audioBufferToWavBlob(App.audioBuffer, s.start, s.end);
+      slices.push({name: `sample_${i}.wav`, blob});
+    }
+    const zip = new JSZip();
+    // add samples
+    const samplesFolder = zip.folder('samples');
+    for(const s of slices) samplesFolder.file(s.name, s.blob);
+    // dwp content mapping sample names to notes
+    const root = Number(document.getElementById('rootMidi').value || 36);
+    const zoneXml = slices.map((s,i)=>`<Zone><RootNote>${root + i}</RootNote><HiNote>${root + i}</HiNote><LoNote>${root + i}</LoNote><SampleName>samples/${s.name}</SampleName></Zone>`).join('');
+    const xml = `<?xml version="1.0"?><DirectWavePresets><Program><Name>Converted Program</Name>${zoneXml}</Program></DirectWavePresets>`;
+    // place dwp at root and also in samples folder (FLM expects program.dwp at root normally)
+    zip.file('program.dwp', xml);
+    const content = await zip.generateAsync({type:'blob'});
+    downloadBlob(content, 'Converted_DWP.zip');
+    logStatus('Export complete — Download started');
+  }catch(err){ console.error(err); logStatus('Export failed: ' + (err.message || err)); }
+});
+
+document.getElementById('installBtn').addEventListener('click', async ()=>{
+  try{
+    // Build same zip as export, but try save via File System API
+    const parts = Math.max(1, Number(document.getElementById('autoSlices').value || 60));
+    let regions = [];
+    if(App.wavesurfer && App.wavesurfer.regions){
+      const regs = App.wavesurfer.regions.list; regions = Object.keys(regs).map(k=>({start:regs[k].start,end:regs[k].end}));
+    }
+    if(regions.length === 0){
+      const dur = App.audioBuffer ? App.audioBuffer.duration : (App.wavesurfer ? App.wavesurfer.getDuration() : 0);
+      for(let i=0;i<parts;i++){ const s=i*dur/parts; regions.push({start:s,end:(i===parts-1)?dur:s+dur/parts}); }
+    }
+    const slices = [];
+    for(let i=0;i<regions.length;i++){ const s=regions[i]; const blob=audioBufferToWavBlob(App.audioBuffer,s.start,s.end); slices.push({name:`sample_${i}.wav`,blob}); }
+    const zip = new JSZip();
+    const samplesFolder = zip.folder('samples');
+    for(const s of slices) samplesFolder.file(s.name, s.blob);
+    const root = Number(document.getElementById('rootMidi').value || 36);
+    const zoneXml = slices.map((s,i)=>`<Zone><RootNote>${root + i}</RootNote><HiNote>${root + i}</HiNote><LoNote>${root + i}</LoNote><SampleName>samples/${s.name}</SampleName></Zone>`).join('');
+    zip.file('program.dwp', `<?xml version="1.0"?><DirectWavePresets><Program><Name>Converted Program</Name>${zoneXml}</Program></DirectWavePresets>`);
+    const content = await zip.generateAsync({type:'blob'});
+    if(window.showSaveFilePicker){
+      const handle = await window.showSaveFilePicker({suggestedName:'Converted_DWP.zip', types:[{description:'ZIP', accept:{'application/zip':['.zip']}}]});
+      const writable = await handle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      logStatus('Saved file. Move it to FLStudioMobile/DirectWave/User on your device.');
+    } else {
+      downloadBlob(content, 'Converted_DWP.zip');
+      logStatus('Download started — move the file to FLStudioMobile/DirectWave/User on your device.');
+    }
+  }catch(err){ console.error(err); logStatus('Install failed: ' + (err.message||err)); }
+});
+
+/* ================== Deploy buttons (template links) ================== */
+const repoPlaceholder = 'https://github.com/yourname/your-backend-repo'; // replace with your repo
+document.getElementById('renderBtn').href = `https://render.com/deploy?repo=${encodeURIComponent(repoPlaceholder)}`;
+document.getElementById('railwayBtn').href = `https://railway.app/new/template?template=${encodeURIComponent(repoPlaceholder)}`;
+
+/* ================== init small helpers ================== */
+// add initial zone for convenience
+createZoneElement(12,12,140,56);
+App.zones.push({el: document.querySelector('.zone'), left:12, top:12, width:140, height:56, layers:[], crossfade:10});
+refreshZoneList(); renderLayersInfo();
+
+/* expose audioBufferToWavBlob for slicing above (already defined) */
+logStatus('Ready — load WAV or use demo samples.');
+
+// Ensure regions plugin is available (wavesurfer includes regions by default in some builds; if not, we emulate minimal region functionality)
+// If the loaded wavesurfer build doesn't support region creation, we polyfill a simple region adder:
+if(!App.wavesurfer.regions){
+  App.wavesurfer.regions = { list: {} , add: function(opts){ const id = 'r'+Date.now(); const reg = { id, start: opts.start||0, end: opts.end||0, remove(){ delete App.wavesurfer.regions.list[id]; }, options: opts }; App.wavesurfer.regions.list[id] = reg; return reg; } };
+}
+
+</script>
+</body>
+</html>
