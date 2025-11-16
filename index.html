@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WAV → DWP Mobile Installer</title>
+<style>
+ body { background:#1b1b1b; color:white; font-family:Arial, sans-serif; margin:0; }
+ header { background:#ff6700; padding:18px; font-size:24px; text-align:center; font-weight:bold; }
+ #wrap { padding:15px; }
+ .tab { display:flex; cursor:pointer; padding:12px; background:#2a2a2a; margin-bottom:5px; border-radius:10px; justify-content:space-around; }
+ .tab.active { background:#ff6700; color:#1b1b1b; }
+ .tabContent { display:none; background:#222; padding:20px; border-radius:12px; margin-bottom:20px; }
+ .tabContent.active { display:block; }
+ input,button { width:100%; padding:14px; border-radius:10px; border:none; margin-top:10px; }
+ input { background:#333; color:white; }
+ button { background:#ff6700; color:white; font-size:17px; font-weight:bold; }
+ #status { margin-top:20px; background:#111; padding:14px; border-radius:10px; min-height:40px; border:1px solid #333; }
+ .draggableZone { background:#ff6700; opacity:0.7; position:absolute; border:2px dashed #fff; border-radius:8px; cursor:grab; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+</head>
+<body>
+<header>WAV → DWP Mobile Installer</header>
+<div id="wrap">
+
+<div class="tab" id="tab1">Load WAV</div>
+<div class="tab" id="tab2">Chromatic Settings</div>
+<div class="tab" id="tab3">Zone Editor</div>
+
+<div class="tabContent" id="content1">
+ <input type="file" id="wavInput" accept="audio/wav" />
+</div>
+
+<div class="tabContent" id="content2">
+ Slice length (sec)<br>
+ <input type="number" id="sliceLength" value="0.25" step="0.01">
+ Root MIDI Note<br>
+ <input type="number" id="rootNote" value="60">
+</div>
+
+<div class="tabContent" id="content3">
+ <p>Drag zones to adjust sample mapping:</p>
+ <div id="zoneArea" style="position:relative; width:100%; height:200px; background:#333; border-radius:12px;"></div>
+</div>
+
+<button id="convertBtn">Generate DWP ZIP</button>
+<button id="installBtn">Install to FL Studio Mobile</button>
+
+<div id="status"></div>
+
+</div>
+<script>
+// Tabs logic
+const tabs = document.querySelectorAll('.tab');
+const contents = document.querySelectorAll('.tabContent');
+tabs.forEach((tab, idx) => {
+ tab.onclick = () => {
+  tabs.forEach(t=>t.classList.remove('active'));
+  contents.forEach(c=>c.classList.remove('active'));
+  tab.classList.add('active');
+  contents[idx].classList.add('active');
+ };
+});
+tabs[0].click();
+
+// Draggable zone creation
+const zoneArea = document.getElementById('zoneArea');
+function createZone(x=10,y=10,w=60,h=50){
+ let zone = document.createElement('div');
+ zone.className='draggableZone';
+ zone.style.left=x+'px'; zone.style.top=y+'px';
+ zone.style.width=w+'px'; zone.style.height=h+'px';
+ zoneArea.appendChild(zone);
+ 
+ let offsetX, offsetY, dragging=false;
+ zone.addEventListener('touchstart', e=>{ dragging=true; offsetX=e.touches[0].clientX-zone.offsetLeft; offsetY=e.touches[0].clientY-zone.offsetTop; });
+ zone.addEventListener('touchmove', e=>{
+  if(!dragging) return;
+  let nx=e.touches[0].clientX-offsetX;
+  let ny=e.touches[0].clientY-offsetY;
+  nx=Math.max(0,Math.min(zoneArea.clientWidth-zone.offsetWidth,nx));
+  ny=Math.max(0,Math.min(zoneArea.clientHeight-zone.offsetHeight,ny));
+  zone.style.left=nx+'px';
+  zone.style.top=ny+'px';
+ });
+ zone.addEventListener('touchend', ()=>{ dragging=false; });
+}
+createZone();
+createZone(80,50,60,50);
+</script>
+<script src="app.js"></script>
+</body>
+</html>
